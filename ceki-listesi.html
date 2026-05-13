@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Çeki Listesi — Yükleme Simülatörü</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F4F8;--panel:#fff;--border:#E2E8F0;
+  --text:#1B2A3B;--text2:#64748B;
+  --blue:#2E6DA4;--blue2:#1B5285;--blue-light:#EAF2FB;
+  --green:#1D9E75;--r:12px;
+}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:#1B2A3B;height:56px;display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:100}
+.logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center}
+header h1{color:#fff;font-size:15px;font-weight:600}
+header .sub{color:#556;font-size:12px}
+.hbtns{margin-left:auto;display:flex;gap:8px}
+.hbtn{padding:7px 14px;border:none;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:Arial}
+.hbtn-blue{background:var(--blue);color:#fff}.hbtn-blue:hover{background:var(--blue2)}
+.hbtn-out{background:transparent;color:#8BAABF;border:1px solid #2E4A6A}.hbtn-out:hover{background:#243040;color:#fff}
+
+.page{max-width:1100px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px}
+
+/* DB Banner */
+.db-banner{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;transition:all .2s}
+.db-banner.ok{background:#E1F5EE;border-color:#A7E3C8}
+.db-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#EAF2FB}
+.db-banner.ok .db-icon{background:#C8EFE0}
+.db-info{flex:1;min-width:180px}
+.db-info h3{font-size:13px;font-weight:600;margin-bottom:2px}
+.db-info p{font-size:11px;color:var(--text2)}
+.db-acts{display:flex;gap:8px;flex-wrap:wrap}
+.dbb{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:Arial;border:none}
+.dbb-green{background:var(--green);color:#fff}.dbb-green:hover{background:#15805E}
+.dbb-blue{background:var(--blue);color:#fff}.dbb-blue:hover{background:var(--blue2)}
+.dbb-red{background:#fff;color:#E24B4A;border:1px solid #fcc}.dbb-red:hover{background:#fee}
+
+/* Grid */
+.main{display:grid;grid-template-columns:300px 1fr;gap:14px}
+@media(max-width:800px){.main{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.ptitle{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+
+.fg{display:grid;gap:8px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.fld label{font-size:11px;color:var(--text2);display:block;margin-bottom:3px;font-weight:500}
+.fld input,.fld select,.fld textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--border);
+  border-radius:8px;font-size:13px;font-family:Arial;outline:none;
+  background:#fff;color:var(--text);transition:border-color .15s
+}
+.fld input:focus,.fld select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.1)}
+.fld textarea{resize:vertical;min-height:55px}
+
+/* Tablo */
+.twrap{overflow-x:auto}
+.ut{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+.ut th{background:#1B2A3B;color:#fff;padding:8px 6px;text-align:left;font-weight:500;font-size:11px;white-space:nowrap}
+.ut td{padding:4px 4px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
+.ut tr:nth-child(even) td{background:#FAFBFC}
+.ut input,.ut select{width:100%;padding:5px 7px;border:1px solid #E2E8F0;border-radius:6px;font-size:12px;font-family:Arial;background:#fff}
+.ut input:focus,.ut select:focus{border-color:var(--blue);outline:none}
+.ai{border-color:#AAC5E0!important;font-weight:600;color:#185FA5;text-align:center}
+.ro{pointer-events:none;background:#f8fafc!important;color:#888;font-size:11px}
+.rno{text-align:center;color:#aaa;font-size:11px;width:30px}
+.tr-tot td{background:#2E6DA4!important;color:#fff;font-weight:700;padding:8px 6px}
+.kod-sel{border-color:var(--blue)!important;font-weight:600;color:var(--blue)}
+
+/* Önizleme */
+#preview{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.ph{background:#1B2A3B;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.ph span{font-size:10px;color:#8BAABF;font-style:italic}
+.pb{padding:14px;display:flex;flex-direction:column;gap:10px}
+.ps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:11px}
+.pkv .k{color:#888;font-size:10px}
+.pkv .v{color:#1B2A3B;font-weight:500}
+.pt{width:100%;border-collapse:collapse;font-size:11px}
+.pt th{background:#2E6DA4;color:#fff;padding:5px 7px;text-align:left;font-size:10px}
+.pt td{padding:4px 7px;border-bottom:1px solid #f0f4f8}
+.pt tr:nth-child(even) td{background:#FAFBFC}
+.ptot{background:#2E6DA4;color:#fff;display:flex;justify-content:space-between;padding:7px 12px;font-size:12px;font-weight:600;border-radius:0 0 8px 8px}
+.tag{font-size:10px;padding:2px 6px;border-radius:6px;font-weight:500}
+.tk{background:#EAF2FB;color:#0C447C}
+.td{background:#FAEEDA;color:#633806}
+
+.brow{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:Arial;display:flex;align-items:center;gap:6px;flex:1;justify-content:center}
+.bb{background:var(--blue);color:#fff}.bb:hover{background:var(--blue2)}
+.bg{background:var(--green);color:#fff}.bg:hover{background:#15805E}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  </div>
+  <h1>Çeki Listesi</h1>
+  <span class="sub">Packing List Modülü</span>
+  <div class="hbtns">
+    <button class="hbtn hbtn-out" onclick="onizle()">Önizle</button>
+    <button class="hbtn hbtn-blue" onclick="exportExcel()">⬇ Excel İndir</button>
+  </div>
+</header>
+
+<input type="file" id="vtFile" accept=".xlsx,.xls" onchange="vtYukle(this)">
+
+<div class="page">
+
+  <!-- DB Banner -->
+  <div class="db-banner" id="dbBanner">
+    <div class="db-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E6DA4" stroke-width="2">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+    </div>
+    <div class="db-info">
+      <h3 id="dbTitle">Ürün Veritabanı Yüklenmedi</h3>
+      <p id="dbDesc">Şablonu indirin, ürünlerinizi doldurun ve yükleyin. Bir kere yüklenir, hep hatırlar.</p>
+    </div>
+    <div class="db-acts">
+      <button class="dbb dbb-green" onclick="sablonIndir()">⬇ Şablon İndir</button>
+      <button class="dbb dbb-blue" onclick="document.getElementById('vtFile').click()">⬆ Veritabanı Yükle</button>
+      <button class="dbb dbb-red" id="dbClr" style="display:none" onclick="vtTemizle()">✕ Temizle</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- SOL -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel">
+        <div class="ptitle">Gönderici Firma</div>
+        <div class="fg g2">
+          <div class="fld"><label>Firma Adı *</label><input id="gF" placeholder="ABC Lojistik Ltd."></div>
+          <div class="fld"><label>Vergi No</label><input id="gV" placeholder="1234567890"></div>
+        </div>
+        <div class="fld"><label>Adres</label><input id="gA" placeholder="İstanbul, Türkiye"></div>
+        <div class="fld"><label>Tel / E-posta</label><input id="gI" placeholder="+90 555 000 00 00"></div>
+      </div>
+
+      <div class="panel">
+        <div class="ptitle">Alıcı Firma</div>
+        <div class="fg g2">
+          <div class="fld"><label>Firma Adı *</label><input id="aF" placeholder="XYZ Import Co."></div>
+          <div class="fld"><label>Ülke / Port</label><input id="aP" placeholder="Netherlands / Rotterdam"></div>
+        </div>
+        <div class="fld"><label>Adres</label><input id="aA" placeholder="Teslimat adresi"></div>
+        <div class="fld"><label>İletişim</label><input id="aI" placeholder="+31 ..."></div>
+      </div>
+
+      <div class="panel">
+        <div class="ptitle">Araç & Sevk</div>
+        <div class="fld">
+          <label>Araç Tipi</label>
+          <select id="at">
+            <option>20' Standart Konteyner</option><option>40' Standart Konteyner</option>
+            <option>40' High Cube Konteyner</option><option>Mega Tır Dorsesi</option>
+            <option>Standart Tır Dorsesi</option><option>TIR Kasa Kamyon</option>
+            <option>Panelvan</option><option>Diğer</option>
+          </select>
+        </div>
+        <div class="fld"><label>Konteyner / Plaka No</label><input id="kn" placeholder="MSCU1234567"></div>
+        <div class="fg g3">
+          <div class="fld"><label>İç En (cm)</label><input id="ae" type="number" placeholder="234"></div>
+          <div class="fld"><label>İç Boy (cm)</label><input id="ab" type="number" placeholder="590"></div>
+          <div class="fld"><label>İç Yük. (cm)</label><input id="ay" type="number" placeholder="239"></div>
+        </div>
+        <div class="fg g2">
+          <div class="fld"><label>Çıkış Limanı</label><input id="cl" placeholder="İstanbul"></div>
+          <div class="fld"><label>Varış Limanı</label><input id="vl" placeholder="Rotterdam"></div>
+        </div>
+        <div class="fg g2">
+          <div class="fld"><label>Incoterms</label>
+            <select id="ic"><option>FOB</option><option>CIF</option><option>CFR</option>
+            <option>EXW</option><option>DAP</option><option>DDP</option><option>FCA</option></select>
+          </div>
+          <div class="fld"><label>Yükleme Tarihi</label><input id="yt" type="date"></div>
+        </div>
+        <div class="fld"><label>Taşıyıcı Firma</label><input id="tf" placeholder="MSC / Maersk / ..."></div>
+      </div>
+
+      <div class="panel">
+        <div class="ptitle">Notlar</div>
+        <div class="fld"><textarea id="nt" placeholder="Ek notlar, özel talimatlar..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- SAĞ -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel">
+        <div class="ptitle">
+          Ürün Listesi
+          <button onclick="satirEkle()" style="padding:4px 10px;font-size:11px;border-radius:7px;border:1px solid #AAC5E0;background:#fff;color:var(--blue);cursor:pointer;font-family:Arial;font-weight:500">+ Satır Ekle</button>
+        </div>
+        <div class="twrap">
+          <table class="ut">
+            <thead>
+              <tr>
+                <th style="width:30px">#</th>
+                <th style="min-width:130px">Ürün Kodu</th>
+                <th style="min-width:150px">Ürün Adı</th>
+                <th style="width:75px">Tip</th>
+                <th style="width:100px">Ölçüler</th>
+                <th style="width:60px;text-align:center">Adet</th>
+                <th style="width:72px;text-align:center">Brüt (kg)</th>
+                <th style="width:72px;text-align:center">Net (kg)</th>
+                <th>Not</th>
+                <th style="width:26px"></th>
+              </tr>
+            </thead>
+            <tbody id="urunBody"></tbody>
+            <tfoot>
+              <tr class="tr-tot">
+                <td colspan="5" style="text-align:right;padding-right:12px">TOPLAM</td>
+                <td id="tA" style="text-align:center">0</td>
+                <td id="tB" style="text-align:center">0</td>
+                <td id="tN" style="text-align:center">0</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="brow">
+        <button class="btn bb" onclick="onizle()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Önizlemeyi Güncelle
+        </button>
+        <button class="btn bg" onclick="exportExcel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel İndir
+        </button>
+      </div>
+
+      <div id="preview">
+        <div class="ph">
+          <strong>ÇEKİ LİSTESİ ÖNİZLEME</strong>
+          <span id="pHint">Önizlemeyi Güncelle butonuna basın</span>
+        </div>
+        <div class="pb" id="pBody">
+          <div style="text-align:center;color:#aaa;padding:24px;font-size:13px">Formu doldurup "Önizlemeyi Güncelle" butonuna basın.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Veritabanı ──────────────────────────────────────────────────────────────
+let DB = []
+
+function vtYukle(input) {
+  const file = input.files[0]; if(!file) return
+  const reader = new FileReader()
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary'})
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''})
+      const parsed = []
+      rows.forEach(row => {
+        const kod = String(row['Ürün Kodu *']||row['Ürün Kodu']||row['KOD']||'').trim()
+        const ad  = String(row['Ürün Adı *'] ||row['Ürün Adı'] ||row['AD'] ||'').trim()
+        if(!kod||!ad) return
+        parsed.push({
+          kod, ad,
+          tip:  String(row['Tip\n(Kolili/Dökme)']||row['Tip']||'Kolili').trim(),
+          en:   row['En (cm)']||'',
+          boy:  row['Boy (cm)']||'',
+          yuk:  row['Yükseklik (cm)']||'',
+          cap:  row['Çap (cm)\nDökme']||row['Çap (cm)']||'',
+          brut: row['Brüt Ağ. (kg)']||row['Brüt Ağırlık (kg)']||'',
+          net:  row['Net Ağ. (kg)'] ||row['Net Ağırlık (kg)'] ||'',
+          not_: row['Notlar']||'',
+        })
+      })
+      if(!parsed.length){ alert('Ürün bulunamadı. Şablona uygun dosya yükleyin.'); return }
+      DB = parsed
+      localStorage.setItem('urunVT', JSON.stringify(DB))
+      bannerGuncelle(); satirlariYenile()
+      alert(`✓ ${parsed.length} ürün yüklendi!`)
+    } catch(err){ alert('Dosya okunamadı: '+err.message) }
+  }
+  reader.readAsBinaryString(file); input.value=''
+}
+
+function vtLocalYukle() {
+  try { DB = JSON.parse(localStorage.getItem('urunVT')||'[]') } catch(e){ DB=[] }
+  bannerGuncelle()
+}
+
+function vtTemizle() {
+  if(!confirm('Veritabanını temizlemek istiyorsunuz?')) return
+  DB=[]; localStorage.removeItem('urunVT')
+  bannerGuncelle(); satirlariYenile()
+}
+
+function bannerGuncelle() {
+  const ok = DB.length > 0
+  document.getElementById('dbBanner').classList.toggle('ok', ok)
+  document.getElementById('dbTitle').textContent = ok ? `${DB.length} ürün yüklendi ✓` : 'Ürün Veritabanı Yüklenmedi'
+  document.getElementById('dbDesc').textContent  = ok
+    ? 'Ürün kodları dropdown\'dan seçilebilir. Seçince bilgiler otomatik dolar.'
+    : 'Şablonu indirin, ürünlerinizi doldurun ve yükleyin. Bir kere yüklenir, hep hatırlar.'
+  document.getElementById('dbClr').style.display = ok ? 'inline-block' : 'none'
+}
+
+// ── Satırlar ────────────────────────────────────────────────────────────────
+let N=0
+
+function satirEkle(d={}) {
+  N++; const n=N
+  const tbody = document.getElementById('urunBody')
+  const tr = document.createElement('tr'); tr.id=`r${n}`
+
+  const kodHucre = DB.length
+    ? `<select id="k${n}" class="kod-sel" onchange="kodSec(${n})">
+        <option value="">— Seç —</option>
+        ${DB.map(u=>`<option value="${esc(u.kod)}"${d.kod===u.kod?' selected':''}>${esc(u.kod)}</option>`).join('')}
+       </select>`
+    : `<input id="k${n}" value="${d.kod||''}" placeholder="Ürün kodu">`
+
+  tr.innerHTML = `
+    <td class="rno">${n}</td>
+    <td style="min-width:130px">${kodHucre}</td>
+    <td><input id="ad${n}" value="${d.ad||''}"  class="ro" readonly placeholder="—"></td>
+    <td><input id="tp${n}" value="${d.tip||''}" class="ro" readonly placeholder="—" style="font-size:11px;color:#888"></td>
+    <td><input id="ol${n}" value="${d.olc||''}" class="ro" readonly placeholder="—" style="font-size:10px;color:#888"></td>
+    <td><input id="at${n}" type="number" value="${d.adet||''}" class="ai" placeholder="0" oninput="totGuncelle()" style="text-align:center"></td>
+    <td><input id="bt${n}" type="number" value="${d.brut||''}" placeholder="0" oninput="totGuncelle()" style="text-align:center"></td>
+    <td><input id="nt${n}" type="number" value="${d.net||''}"  placeholder="0" oninput="totGuncelle()" style="text-align:center"></td>
+    <td><input id="no${n}" value="${d.not_||''}" placeholder="Not..."></td>
+    <td style="text-align:center"><button onclick="satSil(${n})" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:18px;line-height:1">×</button></td>
+  `
+  tbody.appendChild(tr)
+  if(d.kod) doldur(n, d.kod)
+  totGuncelle()
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function kodSec(n){
+  doldur(n, document.getElementById(`k${n}`)?.value||'')
+}
+
+function doldur(n, kod) {
+  const u = DB.find(u=>u.kod===kod)
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v }
+  if(u){
+    set(`ad${n}`, u.ad)
+    set(`tp${n}`, u.tip)
+    let olc = ''
+    if(u.tip==='Dökme'&&u.cap) olc=`Ø${u.cap}×${u.yuk} cm`
+    else if(u.en&&u.boy&&u.yuk) olc=`${u.en}×${u.boy}×${u.yuk} cm`
+    set(`ol${n}`, olc)
+    if(u.brut) set(`bt${n}`, u.brut)
+    if(u.net)  set(`nt${n}`, u.net)
+  } else {
+    set(`ad${n}`,''); set(`tp${n}`,''); set(`ol${n}`,'')
+  }
+  totGuncelle()
+}
+
+function satSil(n){ document.getElementById(`r${n}`)?.remove(); totGuncelle() }
+
+function totGuncelle(){
+  let a=0,b=0,n2=0
+  for(let i=1;i<=N;i++){
+    a+=+(document.getElementById(`at${i}`)?.value||0)
+    b+=+(document.getElementById(`bt${i}`)?.value||0)
+    n2+=+(document.getElementById(`nt${i}`)?.value||0)
+  }
+  document.getElementById('tA').textContent=a
+  document.getElementById('tB').textContent=b
+  document.getElementById('tN').textContent=n2
+}
+
+function satirlariYenile(){
+  const mevcut=[]
+  for(let i=1;i<=N;i++){
+    const kEl=document.getElementById(`k${i}`); if(!kEl) continue
+    mevcut.push({
+      kod:kEl.value||'', ad:document.getElementById(`ad${i}`)?.value||'',
+      tip:document.getElementById(`tp${i}`)?.value||'', olc:document.getElementById(`ol${i}`)?.value||'',
+      adet:document.getElementById(`at${i}`)?.value||'', brut:document.getElementById(`bt${i}`)?.value||'',
+      net:document.getElementById(`nt${i}`)?.value||'', not_:document.getElementById(`no${i}`)?.value||'',
+    })
+  }
+  document.getElementById('urunBody').innerHTML=''; N=0
+  const list = mevcut.length ? mevcut : Array(5).fill({})
+  list.forEach(d=>satirEkle(d))
+}
+
+function getUruns(){
+  const rows=[]
+  for(let i=1;i<=N;i++){
+    const k=document.getElementById(`k${i}`)?.value||''
+    const a=document.getElementById(`ad${i}`)?.value||''
+    if(!k&&!a) continue
+    rows.push({
+      kod:k, ad:a,
+      tip:document.getElementById(`tp${i}`)?.value||'',
+      olc:document.getElementById(`ol${i}`)?.value||'',
+      adet:document.getElementById(`at${i}`)?.value||'',
+      brut:document.getElementById(`bt${i}`)?.value||'',
+      net:document.getElementById(`nt${i}`)?.value||'',
+      not_:document.getElementById(`no${i}`)?.value||'',
+    })
+  }
+  return rows
+}
+
+function getForm(){ return {
+  gF:v('gF'),gV:v('gV'),gA:v('gA'),gI:v('gI'),
+  aF:v('aF'),aP:v('aP'),aA:v('aA'),aI:v('aI'),
+  at:v('at'),kn:v('kn'),ae:v('ae'),ab:v('ab'),ay:v('ay'),
+  cl:v('cl'),vl:v('vl'),ic:v('ic'),yt:v('yt'),tf:v('tf'),nt:v('nt'),
+}}
+function v(id){ return document.getElementById(id)?.value||'' }
+
+// ── Önizleme ────────────────────────────────────────────────────────────────
+function onizle(){
+  const f=getForm(), ur=getUruns()
+  let tA=0,tB=0,tN=0
+  ur.forEach(u=>{tA+=+u.adet||0;tB+=+u.brut||0;tN+=+u.net||0})
+  const tarih=f.yt?new Date(f.yt).toLocaleDateString('tr-TR'):'—'
+  const olcu=`${f.ae||'?'}×${f.ab||'?'}×${f.ay||'?'} cm`
+
+  const rows=ur.filter(u=>u.kod||u.ad).map(u=>`
+    <tr>
+      <td><strong>${u.kod||'—'}</strong></td><td>${u.ad||'—'}</td>
+      <td><span class="tag ${u.tip==='Dökme'?'td':'tk'}">${u.tip||''}</span></td>
+      <td style="font-size:10px;color:#888">${u.olc||'—'}</td>
+      <td style="text-align:center;font-weight:600;color:#185FA5">${u.adet||'—'}</td>
+      <td style="text-align:center">${u.brut||'—'}</td>
+      <td style="text-align:center">${u.net||'—'}</td>
+      <td style="color:#888;font-size:10px">${u.not_||''}</td>
+    </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:#aaa;padding:12px">Ürün girilmedi</td></tr>'
+
+  document.getElementById('pHint').textContent=new Date().toLocaleTimeString('tr-TR')
+  document.getElementById('pBody').innerHTML=`
+    <div class="ps">
+      <div>
+        <div style="font-size:10px;font-weight:600;color:#2E6DA4;margin-bottom:5px">GÖNDERİCİ</div>
+        <div class="pkv"><span class="k">Firma</span><div class="v">${f.gF||'—'}</div></div>
+        <div class="pkv"><span class="k">Adres</span><div class="v">${f.gA||'—'}</div></div>
+        <div class="pkv"><span class="k">Vergi No</span><div class="v">${f.gV||'—'}</div></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:600;color:#1D9E75;margin-bottom:5px">ALICI</div>
+        <div class="pkv"><span class="k">Firma</span><div class="v">${f.aF||'—'}</div></div>
+        <div class="pkv"><span class="k">Adres</span><div class="v">${f.aA||'—'}</div></div>
+        <div class="pkv"><span class="k">Port</span><div class="v">${f.aP||'—'}</div></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:600;color:#888;margin-bottom:5px">YÜK</div>
+        <div class="pkv"><span class="k">Araç</span><div class="v">${f.at}</div></div>
+        <div class="pkv"><span class="k">No</span><div class="v">${f.kn||'—'}</div></div>
+        <div class="pkv"><span class="k">Ölçü</span><div class="v">${olcu}</div></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:600;color:#888;margin-bottom:5px">SEVK</div>
+        <div class="pkv"><span class="k">Çıkış</span><div class="v">${f.cl||'—'}</div></div>
+        <div class="pkv"><span class="k">Varış</span><div class="v">${f.vl||'—'}</div></div>
+        <div class="pkv"><span class="k">${f.ic} / Tarih</span><div class="v">${tarih}</div></div>
+      </div>
+    </div>
+    <table class="pt">
+      <thead><tr><th>Kod</th><th>Ürün Adı</th><th>Tip</th><th>Ölçüler</th>
+        <th style="text-align:center">Adet</th><th style="text-align:center">Brüt</th>
+        <th style="text-align:center">Net</th><th>Not</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="ptot">
+      <span>TOPLAM</span>
+      <span>${tA} adet &nbsp;|&nbsp; ${tB} kg brüt &nbsp;|&nbsp; ${tN} kg net</span>
+    </div>
+    ${f.nt?`<div style="font-size:11px;color:#555;background:#f8fafc;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0">${f.nt}</div>`:''}
+  `
+}
+
+// ── Excel Export ────────────────────────────────────────────────────────────
+function exportExcel(){
+  const f=getForm(), ur=getUruns()
+  const tarih=f.yt?new Date(f.yt).toLocaleDateString('tr-TR'):''
+  const data=[
+    ["ÇEKİ LİSTESİ / PACKING LIST","","","","","","","",""],[""],
+    ["GÖNDERİCİ","","","","ALICI","","","",""],
+    ["Firma:",f.gF,"","","Firma:",f.aF,"","",""],
+    ["Adres:",f.gA,"","","Adres:",f.aA,"","",""],
+    ["Vergi No:",f.gV,"","","Ülke/Port:",f.aP,"","",""],
+    ["İletişim:",f.gI,"","","İletişim:",f.aI,"","",""],[""],
+    ["YÜK BİLGİSİ","","","","SEVK","","","",""],
+    ["Araç:",f.at,"","","Çıkış:",f.cl,"","",""],
+    ["Kont/Plaka:",f.kn,"","","Varış:",f.vl,"","",""],
+    ["Ölçü (cm):",`${f.ae}×${f.ab}×${f.ay}`,"","","Incoterms:",f.ic,"","",""],
+    ["Tarih:",tarih,"","","Taşıyıcı:",f.tf,"","",""],[""],
+    ["#","KOD","ÜRÜN ADI","TİP","ÖLÇÜLER","ADET","BRÜT (kg)","NET (kg)","NOT"],
+  ]
+  ur.forEach((u,i)=>data.push([i+1,u.kod,u.ad,u.tip,u.olc,u.adet?+u.adet:'',u.brut?+u.brut:'',u.net?+u.net:'',u.not_]))
+  let tA=0,tB=0,tN=0; ur.forEach(u=>{tA+=+u.adet||0;tB+=+u.brut||0;tN+=+u.net||0})
+  data.push(["","","TOPLAM","","",tA,tB,tN,""])
+  data.push([""])
+  if(f.nt) data.push(["NOTLAR:",f.nt])
+  data.push(["","","","","","","","",`Oluşturma: ${new Date().toLocaleDateString('tr-TR')}`])
+
+  const wb2=XLSX.utils.book_new()
+  const ws2=XLSX.utils.aoa_to_sheet(data)
+  ws2['!cols']=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:18},{wch:8},{wch:12},{wch:12},{wch:22}]
+  XLSX.utils.book_append_sheet(wb2,ws2,"Çeki Listesi")
+  XLSX.writeFile(wb2,`CekiListesi_${f.aF||f.gF||'export'}_${new Date().toISOString().slice(0,10)}.xlsx`)
+}
+
+// ── Şablon İndir ─────────────────────────────────────────────────────────────
+function sablonIndir(){
+  const wb2=XLSX.utils.book_new()
+  const h=["Ürün Kodu *","Ürün Adı *","Tip\n(Kolili/Dökme)","En (cm)","Boy (cm)","Yükseklik (cm)","Çap (cm)\nDökme","Brüt Ağ. (kg)","Net Ağ. (kg)","Notlar"]
+  const ex=[
+    ["SKS-27","Saksı 27cm","Dökme","","",25,27,0.8,0.6,""],
+    ["SKS-35","Saksı 35cm","Dökme","","",30,35,1.2,0.9,""],
+    ["KLI-A","Koli A 40x60","Kolili",40,60,30,"",2.5,2.0,""],
+    ["KLI-B","Koli B 50x80","Kolili",50,80,40,"",4.0,3.5,""],
+  ]
+  const data=[h,...ex,...Array(50).fill(Array(10).fill(""))]
+  const ws2=XLSX.utils.aoa_to_sheet(data)
+  ws2['!cols']=[{wch:14},{wch:26},{wch:14},{wch:9},{wch:9},{wch:14},{wch:12},{wch:14},{wch:12},{wch:20}]
+  XLSX.utils.book_append_sheet(wb2,ws2,"Ürün Veritabanı")
+
+  const t=[["DOLDURMA KILAVUZU"],[""],
+    ["Alan","Açıklama"],
+    ["Ürün Kodu *","Zorunlu. Benzersiz, max 10 karakter."],
+    ["Ürün Adı *","Zorunlu. Ürünün tam adı."],
+    ["Tip","Kolili, Dökme veya Diğer yazın."],
+    ["En/Boy/Yükseklik","Kolili ürünler için cm cinsinden."],
+    ["Çap","Dökme/saksı için çap cm olarak."],
+    ["Ağırlık","Brüt ve net ağırlık kg cinsinden."],
+    ["","Dosyayı kaydedip Veritabanı Yükle butonuyla yükleyin."],
+  ]
+  const ws3=XLSX.utils.aoa_to_sheet(t)
+  ws3['!cols']=[{wch:22},{wch:55}]
+  XLSX.utils.book_append_sheet(wb2,ws3,"Talimatlar")
+  XLSX.writeFile(wb2,"UrunVeritabani_Sablonu.xlsx")
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('yt').valueAsDate=new Date()
+vtLocalYukle()
+satirlariYenile()
+</script>
+</body>
+</html>

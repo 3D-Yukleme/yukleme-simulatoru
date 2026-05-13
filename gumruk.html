@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gümrük / GTİP Sorgulama</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F4F8;--panel:#fff;--border:#E2E8F0;
+  --text:#1B2A3B;--text2:#64748B;
+  --blue:#2E6DA4;--blue2:#1B5285;--blue-light:#EAF2FB;
+  --green:#1D9E75;--r:12px;
+}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+header{background:#1B2A3B;height:56px;display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:100}
+.logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center}
+header h1{color:#fff;font-size:15px;font-weight:600}
+header .sub{color:#556;font-size:12px}
+.nav{margin-left:auto;display:flex;gap:6px}
+.navbtn{padding:6px 12px;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-family:Arial;font-weight:500;background:transparent;color:#8BAABF;border:1px solid #2E4A6A}
+.navbtn:hover{background:#243040;color:#fff}
+
+.page{max-width:900px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px}
+
+/* Arama */
+.search-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px}
+.search-box h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.search-box p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.search-row{display:flex;gap:8px}
+.search-row input{
+  flex:1;padding:11px 16px;border:2px solid var(--border);border-radius:10px;
+  font-size:14px;font-family:Arial;outline:none;
+  transition:border-color .15s
+}
+.search-row input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.1)}
+.search-btn{
+  padding:11px 22px;background:var(--blue);color:#fff;border:none;
+  border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:Arial;
+  white-space:nowrap;display:flex;align-items:center;gap:6px
+}
+.search-btn:hover{background:var(--blue2)}
+.search-btn:disabled{background:#aaa;cursor:not-allowed}
+.search-tip{font-size:11px;color:#aaa;margin-top:8px}
+
+/* Durum */
+.status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:13px}
+.status.loading{background:#EAF2FB;color:#0C447C}
+.status.error{background:#FEE;color:#C0392B;border:1px solid #fcc}
+.status.empty{background:#f8fafc;color:#888;border:1px solid var(--border)}
+.spin{width:16px;height:16px;border:2px solid #AAC5E0;border-top-color:#2E6DA4;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Sonuçlar */
+.results-header{display:flex;justify-content:space-between;align-items:center}
+.results-header h3{font-size:13px;font-weight:600;color:var(--text2)}
+.results-count{font-size:12px;color:#888}
+
+.result-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 18px;cursor:pointer;transition:all .15s;
+}
+.result-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(46,109,164,.12);transform:translateY(-1px)}
+.result-card.selected{border-color:var(--blue);background:var(--blue-light)}
+.rc-top{display:flex;align-items:flex-start;gap:12px}
+.rc-kod{
+  font-size:15px;font-weight:700;color:var(--blue);font-family:'Courier New',monospace;
+  background:var(--blue-light);padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0
+}
+.rc-tanim{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.rc-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:500}
+.badge-fasil{background:#F0F4F8;color:#64748B}
+.badge-vergi{background:#E1F5EE;color:#0F6E56}
+.badge-tur{background:#FAEEDA;color:#633806}
+
+/* Detay */
+.detail-panel{
+  background:var(--panel);border:1px solid var(--blue);border-radius:var(--r);
+  padding:18px 20px;display:flex;flex-direction:column;gap:12px
+}
+.detail-panel h3{font-size:15px;font-weight:600;color:var(--blue)}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dp-item label{font-size:11px;color:#888;display:block;margin-bottom:2px}
+.dp-item .val{font-size:13px;font-weight:500}
+.dp-item .val.mono{font-family:'Courier New',monospace;font-size:14px;color:var(--blue)}
+.copy-btn{
+  padding:6px 14px;background:#fff;color:var(--blue);border:1px solid #AAC5E0;
+  border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:Arial
+}
+.copy-btn:hover{background:var(--blue-light)}
+.copy-btn.copied{background:var(--green);color:#fff;border-color:var(--green)}
+.dp-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Popüler aramalar */
+.popular{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.pill{
+  padding:5px 12px;background:#fff;border:1px solid var(--border);
+  border-radius:20px;font-size:12px;cursor:pointer;transition:all .12s;color:var(--text2)
+}
+.pill:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+
+/* Bilgi kutusu */
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr}}
+.info-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.info-card h4{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.info-card p{font-size:12px;color:var(--text);line-height:1.5}
+.code-structure{display:flex;gap:2px;margin-top:8px}
+.cs-part{text-align:center;padding:6px 4px;border-radius:6px;font-size:10px;font-weight:600;font-family:'Courier New',monospace}
+.cs-hs{background:#EAF2FB;color:#0C447C;flex:6}
+.cs-eu{background:#E1F5EE;color:#085041;flex:2}
+.cs-tr{background:#FAEEDA;color:#633806;flex:4}
+.cs-label{font-size:9px;margin-top:3px;color:#888}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  </div>
+  <h1>Gümrük</h1>
+  <span class="sub">GTİP Sorgulama Modülü</span>
+  <nav class="nav">
+    <button class="navbtn" onclick="location.href='index.html'">Simülatör</button>
+    <button class="navbtn" onclick="location.href='ceki-listesi.html'">Çeki Listesi</button>
+  </nav>
+</header>
+
+<div class="page">
+
+  <!-- Arama -->
+  <div class="search-box">
+    <h2>GTİP Kodu Sorgula</h2>
+    <p>Ürün adı veya mevcut GTİP kodunuzu aratın. Sonuçlar Türkiye Gümrük Tarife Cetveli esas alınarak AI tarafından oluşturulur.</p>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:#EAF2FB;padding:4px 10px;border-radius:6px;font-size:11px;color:#2E6DA4;margin-bottom:12px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      AI destekli — sonuçlar referans amaçlıdır, resmi işlemlerde gümrük müşavirine danışın
+    </div>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Örn: plastik saksı, 3923, polietilen..."
+        onkeydown="if(event.key==='Enter') ara()">
+      <button class="search-btn" id="searchBtn" onclick="ara()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Sorgula
+      </button>
+    </div>
+    <div class="search-tip">Ürün adı, 2-12 haneli GTİP kodu veya malzeme türü ile arayabilirsiniz.</div>
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:#aaa;margin-bottom:6px">Sık arananlar:</div>
+      <div class="popular">
+        <span class="pill" onclick="araKelime('plastik saksı')">Plastik Saksı</span>
+        <span class="pill" onclick="araKelime('polietilen')">Polietilen</span>
+        <span class="pill" onclick="araKelime('konteyner')">Konteyner</span>
+        <span class="pill" onclick="araKelime('ambalaj')">Ambalaj</span>
+        <span class="pill" onclick="araKelime('koli')">Koli / Kutu</span>
+        <span class="pill" onclick="araKelime('tekstil')">Tekstil</span>
+        <span class="pill" onclick="araKelime('seramik')">Seramik</span>
+        <span class="pill" onclick="araKelime('makine')">Makine</span>
+        <span class="pill" onclick="araKelime('3923')">3923 (Plastik)</span>
+        <span class="pill" onclick="araKelime('7326')">7326 (Demir/Çelik)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Durum -->
+  <div id="statusBox" style="display:none"></div>
+
+  <!-- Seçili detay -->
+  <div id="detailBox" style="display:none"></div>
+
+  <!-- Sonuçlar -->
+  <div id="resultsBox" style="display:none">
+    <div class="results-header" style="margin-bottom:10px">
+      <h3>Arama Sonuçları</h3>
+      <span class="results-count" id="resultsCount"></span>
+    </div>
+    <div id="resultsList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- GTİP Yapısı Bilgi -->
+  <div class="info-grid" id="infoGrid">
+    <div class="info-card">
+      <h4>GTİP Nedir?</h4>
+      <p>Gümrük Tarife İstatistik Pozisyonu — uluslararası ticarette her ürüne verilen 12 haneli sınıflandırma kodu. Gümrük vergisi bu koda göre hesaplanır.</p>
+    </div>
+    <div class="info-card">
+      <h4>Kod Yapısı</h4>
+      <div class="code-structure">
+        <div>
+          <div class="cs-part cs-hs">1234 56</div>
+          <div class="cs-label">HS (6 hane)<br>183 ülkede aynı</div>
+        </div>
+        <div>
+          <div class="cs-part cs-eu">78</div>
+          <div class="cs-label">AB/CN<br>(2 hane)</div>
+        </div>
+        <div>
+          <div class="cs-part cs-tr">9012 34</div>
+          <div class="cs-label">Türkiye'ye özgü<br>(4 hane)</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      <h4>Resmi Kaynaklar</h4>
+      <p>Bağlayıcı işlemler için:<br>
+        <a href="https://uygulama.gtb.gov.tr/Tara" target="_blank" style="color:var(--blue)">GTB Resmi Arama Motoru ↗</a><br>
+        <a href="https://www.tim.org.tr/tr/gtip-arama" target="_blank" style="color:var(--blue)">TİM GTİP Arama ↗</a>
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let lastResults = []
+let selectedKod = null
+
+function araKelime(k) {
+  document.getElementById('searchInput').value = k
+  ara()
+}
+
+async function ara() {
+  const q = document.getElementById('searchInput').value.trim()
+  if (!q || q.length < 2) {
+    showStatus('error', 'En az 2 karakter girin.')
+    return
+  }
+
+  const btn = document.getElementById('searchBtn')
+  btn.disabled = true
+  btn.innerHTML = '<div class="spin"></div> Aranıyor...'
+
+  showStatus('loading', 'Türkiye Ticaret Bakanlığı veritabanı sorgulanıyor...')
+  document.getElementById('resultsBox').style.display = 'none'
+  document.getElementById('detailBox').style.display = 'none'
+  document.getElementById('infoGrid').style.display = 'none'
+  selectedKod = null
+
+  try {
+    const res = await fetch(`/.netlify/functions/gtip?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+
+    if (!res.ok || data.error) {
+      showStatus('error', data.error || 'Bir hata oluştu.')
+      document.getElementById('infoGrid').style.display = 'grid'
+      return
+    }
+
+    lastResults = data.results || []
+
+    if (!lastResults.length) {
+      showStatus('empty', `"${q}" için sonuç bulunamadı. Farklı bir kelime deneyin.`)
+      document.getElementById('infoGrid').style.display = 'grid'
+      return
+    }
+
+    document.getElementById('statusBox').style.display = 'none'
+    renderResults(lastResults, q)
+
+  } catch (err) {
+    showStatus('error', 'Bağlantı hatası. Netlify Functions etkin mi kontrol edin.')
+    document.getElementById('infoGrid').style.display = 'grid'
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Sorgula`
+  }
+}
+
+function showStatus(type, msg) {
+  const box = document.getElementById('statusBox')
+  box.style.display = 'flex'
+  const icons = {
+    loading: '<div class="spin"></div>',
+    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    empty: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  }
+  box.className = `status ${type}`
+  box.innerHTML = `${icons[type]||''} ${msg}`
+}
+
+function renderResults(results, query) {
+  const box = document.getElementById('resultsBox')
+  const list = document.getElementById('resultsList')
+  document.getElementById('resultsCount').textContent = `${results.length} sonuç — AI önerisi`
+  box.style.display = 'block'
+
+  list.innerHTML = results.map((r, i) => {
+    const fasil = r.kod ? r.kod.substring(0, 2) : ''
+    const fasilAd = fasilAdi(fasil)
+    return `<div class="result-card" id="rc${i}" onclick="secKart(${i})">
+      <div class="rc-top">
+        <div class="rc-kod">${r.kod || '—'}</div>
+        <div class="rc-tanim">${escHtml(r.tanim || '—')}</div>
+      </div>
+      <div class="rc-meta">
+        ${fasil ? `<span class="badge badge-fasil">Fasıl ${fasil}: ${fasilAd}</span>` : ''}
+        ${r.vergi ? `<span class="badge badge-vergi">Vergi: %${r.vergi}</span>` : ''}
+      </div>
+      ${r.aciklama ? `<div style="font-size:11px;color:#888;margin-top:6px;line-height:1.4">${escHtml(r.aciklama.substring(0,120))}${r.aciklama.length>120?'…':''}</div>` : ''}
+    </div>`
+  }).join('')
+}
+
+function secKart(i) {
+  // Seçim vurgusu
+  document.querySelectorAll('.result-card').forEach(c => c.classList.remove('selected'))
+  document.getElementById(`rc${i}`)?.classList.add('selected')
+
+  const r = lastResults[i]
+  selectedKod = r.kod
+  const fasil = r.kod ? r.kod.substring(0, 2) : ''
+
+  const detailBox = document.getElementById('detailBox')
+  detailBox.style.display = 'block'
+  detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+
+  detailBox.innerHTML = `
+    <div class="detail-panel">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <h3>GTİP Detayı</h3>
+        <div class="dp-actions">
+          <button class="copy-btn" id="copyBtn" onclick="kopyala('${r.kod}')">📋 Kodu Kopyala</button>
+          <button class="copy-btn" onclick="gtbAc('${r.kod}')">🔗 GTB'de Aç</button>
+        </div>
+      </div>
+      <div class="dp-grid">
+        <div class="dp-item">
+          <label>GTİP Kodu (12 hane)</label>
+          <div class="val mono">${r.kod || '—'}</div>
+        </div>
+        <div class="dp-item">
+          <label>Fasıl (İlk 2 hane)</label>
+          <div class="val">${fasil} — ${fasilAdi(fasil)}</div>
+        </div>
+        <div class="dp-item" style="grid-column:1/-1">
+          <label>Tanım</label>
+          <div class="val">${escHtml(r.tanim || '—')}</div>
+        </div>
+        ${r.aciklama ? `<div class="dp-item" style="grid-column:1/-1"><label>Açıklama</label><div class="val" style="color:#444;font-size:12px;line-height:1.5">${escHtml(r.aciklama)}</div></div>` : ''}
+        ${r.vergi ? `<div class="dp-item"><label>Tahmini Gümrük Vergisi</label><div class="val" style="color:#1D9E75;font-size:15px">%${r.vergi}</div></div>` : ''}
+      </div>
+      <div style="background:#FFF8E1;border:1px solid #F0C040;border-radius:8px;padding:10px 12px;font-size:11px;color:#7D5A00">
+        ⚠️ Bu bilgiler referans amaçlıdır. Resmi gümrük işlemleri için gümrük müşavirinize danışın veya
+        <a href="https://uygulama.gtb.gov.tr/Tara" target="_blank" style="color:#0C447C">GTB resmi sistemini</a> kullanın.
+      </div>
+    </div>
+  `
+}
+
+function kopyala(kod) {
+  navigator.clipboard.writeText(kod).then(() => {
+    const btn = document.getElementById('copyBtn')
+    btn.textContent = '✓ Kopyalandı'
+    btn.classList.add('copied')
+    setTimeout(() => { btn.textContent = '📋 Kodu Kopyala'; btn.classList.remove('copied') }, 2000)
+  })
+}
+
+function gtbAc(kod) {
+  window.open(`https://uygulama.gtb.gov.tr/Tara?arananKelime=${encodeURIComponent(kod)}`, '_blank')
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+// Fasıl adları (1-97 arası temel tanımlar)
+const FASILLER = {
+  '01':'Canlı Hayvanlar','02':'Et ve Sakatat','03':'Balık',
+  '04':'Süt Ürünleri','05':'Hayvansal Ürünler','06':'Canlı Ağaç/Bitki',
+  '07':'Sebzeler','08':'Meyveler','09':'Kahve/Çay/Baharat',
+  '10':'Hububat','11':'Öğütme Ürünleri','12':'Yağlı Tohumlar',
+  '13':'Sakız/Reçine','14':'Bitkisel Örgü Maddeleri','15':'Hayvansal/Bitkisel Yağlar',
+  '16':'Et/Balık Müstahzarları','17':'Şeker','18':'Kakao',
+  '19':'Hububat/Un Müstahzarları','20':'Sebze/Meyve Müstahzarları',
+  '21':'Çeşitli Gıda Müstahzarları','22':'İçkiler','23':'Yem',
+  '24':'Tütün','25':'Tuz/Kükürt/Toprak','26':'Cevherler',
+  '27':'Mineral Yakıtlar','28':'İnorganik Kimyasallar','29':'Organik Kimyasallar',
+  '30':'İlaçlar','31':'Gübreler','32':'Boyalar/Vernikler',
+  '33':'Parfümeri/Kozmetik','34':'Sabun/Deterjan','35':'Albuminoidler/Tutkallar',
+  '36':'Barut/Patlayıcılar','37':'Fotoğraf Malzemeleri','38':'Çeşitli Kimyasal Ürünler',
+  '39':'Plastik','40':'Kauçuk','41':'Ham Deriler',
+  '42':'Deri Eşyası','43':'Kürk','44':'Ağaç ve Ahşap Ürünler',
+  '45':'Mantar','46':'Hasır/Sepet','47':'Kağıt Hamuru',
+  '48':'Kağıt/Karton','49':'Kitap/Gazete/Basılı Ürünler','50':'İpek',
+  '51':'Yün','52':'Pamuk','53':'Bitkisel Tekstil Lifleri',
+  '54':'Sentetik Filamentler','55':'Sentetik Lifler','56':'Vatka/Keçe',
+  '57':'Halılar','58':'Özel Dokuma Kumaşlar','59':'Emprenye Kumaşlar',
+  '60':'Örme Kumaşlar','61':'Örme Giyim Eşyası','62':'Dokuma Giyim Eşyası',
+  '63':'Diğer Tekstil','64':'Ayakkabı','65':'Şapka',
+  '66':'Şemsiye','67':'Tüy/Yapay Çiçek','68':'Taş/Çimento Ürünler',
+  '69':'Seramik','70':'Cam','71':'Mücevherat/Değerli Taşlar',
+  '72':'Demir/Çelik','73':'Demir/Çelik Eşya','74':'Bakır',
+  '75':'Nikel','76':'Alüminyum','78':'Kurşun',
+  '79':'Çinko','80':'Kalay','81':'Diğer Metaller',
+  '82':'Kesici Aletler','83':'Çeşitli Metal Eşya','84':'Makineler/Mekanik Cihazlar',
+  '85':'Elektrikli Makine/Cihaz','86':'Demiryolu Araçları','87':'Motorlu Taşıtlar',
+  '88':'Uçak','89':'Gemi','90':'Optik/Ölçü Aletleri',
+  '91':'Saatler','92':'Müzik Aletleri','93':'Silahlar',
+  '94':'Mobilya/Aydınlatma','95':'Oyuncak/Spor','96':'Çeşitli Mamul Eşya',
+  '97':'Sanat Eserleri',
+}
+function fasilAdi(f) { return FASILLER[f] || '' }
+</script>
+</body>
+</html>
