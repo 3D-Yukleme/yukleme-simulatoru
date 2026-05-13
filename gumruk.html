@@ -244,7 +244,7 @@ async function ara() {
   selectedKod = null
 
   try {
-    const res = await fetch(`/.netlify/functions/gtip?q=${encodeURIComponent(q)}`)
+    const res = await fetch(`/api/gtip?q=${encodeURIComponent(q)}`)
     const data = await res.json()
 
     if (!res.ok || data.error) {
