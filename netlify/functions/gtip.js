@@ -1,1 +1,1 @@
-console.log('ENV CHECK:', Object.keys(process.env).filter(k => k.includes('GEMINI')))
+lighthearted-brioche-c2782b.netlify.app/api/gtip
