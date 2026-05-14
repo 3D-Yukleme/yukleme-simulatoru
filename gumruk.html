@@ -138,9 +138,9 @@ header .sub{color:#556;font-size:12px}
   <div class="search-box">
     <h2>GTİP Kodu Sorgula</h2>
     <p>Ürün adı veya mevcut GTİP kodunuzu aratın. Sonuçlar Türkiye Gümrük Tarife Cetveli esas alınarak AI tarafından oluşturulur.</p>
-    <div style="display:inline-flex;align-items:center;gap:6px;background:#EAF2FB;padding:4px 10px;border-radius:6px;font-size:11px;color:#2E6DA4;margin-bottom:12px">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      AI destekli — sonuçlar referans amaçlıdır, resmi işlemlerde gümrük müşavirine danışın
+    <div style="display:inline-flex;align-items:center;gap:6px;background:#E1F5EE;padding:4px 10px;border-radius:6px;font-size:11px;color:#0F6E56;margin-bottom:12px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+      542 GTİP kodu yerleşik — anlık arama, internet bağlantısı gerekmez
     </div>
     <div class="search-row">
       <input type="text" id="searchInput" placeholder="Örn: plastik saksı, 3923, polietilen..."
@@ -218,6 +218,596 @@ header .sub{color:#556;font-size:12px}
 </div>
 
 <script>
+const GTIP_DB = [
+// ── FASIL 01 — CANLI HAYVANLAR ──────────────────────────────────────────────
+{k:"0101210000",t:"Safkan damızlık atlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0101290000",t:"Diğer canlı atlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0102210000",t:"Safkan damızlık sığırlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0102290000",t:"Diğer canlı sığırlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0103100000",t:"Safkan damızlık domuzlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0104101000",t:"Safkan damızlık koyunlar",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0104209000",t:"Diğer canlı keçiler",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0105110000",t:"Canlı evcil tavuklar (1 kg'ı geçmeyenler)",f:"01",fa:"Canlı Hayvanlar"},
+{k:"0106110000",t:"Canlı primatlar",f:"01",fa:"Canlı Hayvanlar"},
+// ── FASIL 02 — ET VE SAKATATLAR ─────────────────────────────────────────────
+{k:"0201100000",t:"Sığır eti (karkas veya yarım karkas, taze/soğutulmuş)",f:"02",fa:"Et ve Sakatat"},
+{k:"0201200000",t:"Sığır eti (diğer parçalar, kemikli, taze/soğutulmuş)",f:"02",fa:"Et ve Sakatat"},
+{k:"0201300000",t:"Sığır eti (kemiksiz, taze/soğutulmuş)",f:"02",fa:"Et ve Sakatat"},
+{k:"0202100000",t:"Sığır eti (karkas veya yarım karkas, dondurulmuş)",f:"02",fa:"Et ve Sakatat"},
+{k:"0203110000",t:"Domuz eti (karkas, taze/soğutulmuş)",f:"02",fa:"Et ve Sakatat"},
+{k:"0207110000",t:"Tavuk eti (taze/soğutulmuş, tüysüz bütün)",f:"02",fa:"Et ve Sakatat"},
+{k:"0207130000",t:"Tavuk eti (taze/soğutulmuş, parçalar ve sakatat)",f:"02",fa:"Et ve Sakatat"},
+// ── FASIL 03 — BALIK ────────────────────────────────────────────────────────
+{k:"0301110000",t:"Süs balıkları (tatlı su)",f:"03",fa:"Balık ve Su Ürünleri"},
+{k:"0302110000",t:"Alabalık (taze/soğutulmuş)",f:"03",fa:"Balık ve Su Ürünleri"},
+{k:"0302130000",t:"Pasifik somonu (taze/soğutulmuş)",f:"03",fa:"Balık ve Su Ürünleri"},
+{k:"0303110000",t:"Pasifik somonu (dondurulmuş)",f:"03",fa:"Balık ve Su Ürünleri"},
+{k:"0304410000",t:"Pasifik somonu filetosu (dondurulmuş)",f:"03",fa:"Balık ve Su Ürünleri"},
+// ── FASIL 04 — SÜT ÜRÜNLERİ ─────────────────────────────────────────────────
+{k:"0401100000",t:"Süt ve krema (yağ oranı %1'i geçmeyenler)",f:"04",fa:"Süt Ürünleri"},
+{k:"0401200000",t:"Süt ve krema (yağ oranı %1-6 arası)",f:"04",fa:"Süt Ürünleri"},
+{k:"0401400000",t:"Süt ve krema (yağ oranı %6-10 arası)",f:"04",fa:"Süt Ürünleri"},
+{k:"0402100000",t:"Süt tozu (yağsız)",f:"04",fa:"Süt Ürünleri"},
+{k:"0403100000",t:"Yoğurt",f:"04",fa:"Süt Ürünleri"},
+{k:"0405100000",t:"Tereyağı",f:"04",fa:"Süt Ürünleri"},
+{k:"0406100000",t:"Taze peynir (olgunlaşmamış/suda bekletilen)",f:"04",fa:"Süt Ürünleri"},
+{k:"0406300000",t:"Eritilmiş peynir",f:"04",fa:"Süt Ürünleri"},
+{k:"0406900000",t:"Diğer peynirler",f:"04",fa:"Süt Ürünleri"},
+// ── FASIL 07 — SEBZELER ─────────────────────────────────────────────────────
+{k:"0701100000",t:"Tohum patates (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0701900000",t:"Diğer patates (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0702000000",t:"Domates (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0703100000",t:"Soğan ve arpacık (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0703200000",t:"Sarımsak (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0704100000",t:"Karnabahar ve brokoli",f:"07",fa:"Sebzeler"},
+{k:"0706100000",t:"Havuç ve şalgam",f:"07",fa:"Sebzeler"},
+{k:"0707000000",t:"Salatalık (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0709200000",t:"Kuşkonmaz (taze/soğutulmuş)",f:"07",fa:"Sebzeler"},
+{k:"0709600000",t:"Biber (capsicum)",f:"07",fa:"Sebzeler"},
+// ── FASIL 08 — MEYVELER ─────────────────────────────────────────────────────
+{k:"0801110000",t:"Hindistan cevizi (kurutulmuş)",f:"08",fa:"Meyveler"},
+{k:"0802110000",t:"Badem (kabuklu)",f:"08",fa:"Meyveler"},
+{k:"0802120000",t:"Badem (kabuksuz)",f:"08",fa:"Meyveler"},
+{k:"0802210000",t:"Fındık (kabuklu)",f:"08",fa:"Meyveler"},
+{k:"0802220000",t:"Fındık (kabuksuz)",f:"08",fa:"Meyveler"},
+{k:"0802310000",t:"Ceviz (kabuklu)",f:"08",fa:"Meyveler"},
+{k:"0802320000",t:"Ceviz (kabuksuz)",f:"08",fa:"Meyveler"},
+{k:"0805100000",t:"Portakal (taze/kurutulmuş)",f:"08",fa:"Meyveler"},
+{k:"0805200000",t:"Mandalina, klemantin ve benzerleri",f:"08",fa:"Meyveler"},
+{k:"0805400000",t:"Greyfurt ve pomelo",f:"08",fa:"Meyveler"},
+{k:"0806100000",t:"Üzüm (taze)",f:"08",fa:"Meyveler"},
+{k:"0808100000",t:"Elma (taze)",f:"08",fa:"Meyveler"},
+{k:"0808300000",t:"Armut (taze)",f:"08",fa:"Meyveler"},
+{k:"0809100000",t:"Kayısı (taze)",f:"08",fa:"Meyveler"},
+{k:"0809210000",t:"Kiraz (taze)",f:"08",fa:"Meyveler"},
+{k:"0809290000",t:"Vişne (taze)",f:"08",fa:"Meyveler"},
+{k:"0809300000",t:"Şeftali ve nektarin (taze)",f:"08",fa:"Meyveler"},
+// ── FASIL 09 — KAHVE/ÇAY/BAHARAT ────────────────────────────────────────────
+{k:"0901110000",t:"Kahve (kavurulmamış, kafeinsiz değil)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0901210000",t:"Kahve (kavrulmuş, kafeinsiz değil)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0902100000",t:"Yeşil çay (2 kg'ı geçmeyen ambalajlarda)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0902300000",t:"Siyah çay (2 kg'ı geçmeyen ambalajlarda)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0904110000",t:"Kuru biber (öğütülmemiş)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0907100000",t:"Karanfil (tomurcuk, çiçek ve saplar)",f:"09",fa:"Kahve/Çay/Baharat"},
+{k:"0908110000",t:"Hindistan cevizi kabuğu (öğütülmemiş)",f:"09",fa:"Kahve/Çay/Baharat"},
+// ── FASIL 10 — HUBUBAT ──────────────────────────────────────────────────────
+{k:"1001110000",t:"Durum buğdayı (tohum)",f:"10",fa:"Hububat"},
+{k:"1001910000",t:"Diğer durum buğdayı",f:"10",fa:"Hububat"},
+{k:"1001990000",t:"Diğer buğday ve mahlut",f:"10",fa:"Hububat"},
+{k:"1002100000",t:"Çavdar (tohum)",f:"10",fa:"Hububat"},
+{k:"1003100000",t:"Arpa (tohum)",f:"10",fa:"Hububat"},
+{k:"1005100000",t:"Mısır (tohum)",f:"10",fa:"Hububat"},
+{k:"1005900000",t:"Diğer mısır",f:"10",fa:"Hububat"},
+{k:"1006100000",t:"Pirinç (kabuklu/çeltik)",f:"10",fa:"Hububat"},
+{k:"1006200000",t:"Pirinç (kavuzlu/kepekli)",f:"10",fa:"Hububat"},
+{k:"1006300000",t:"Yarı veya tam işlenmiş pirinç",f:"10",fa:"Hububat"},
+// ── FASIL 15 — YAĞLAR ───────────────────────────────────────────────────────
+{k:"1507100000",t:"Soya yağı (ham)",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+{k:"1509100000",t:"Zeytinyağı (sızma)",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+{k:"1509900000",t:"Diğer zeytinyağı",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+{k:"1511100000",t:"Palmiye yağı (ham)",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+{k:"1512110000",t:"Ayçiçek yağı (ham)",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+{k:"1514110000",t:"Kolza yağı (ham)",f:"15",fa:"Bitkisel/Hayvansal Yağlar"},
+// ── FASIL 17 — ŞEKER ────────────────────────────────────────────────────────
+{k:"1701130000",t:"Ham pancar şekeri",f:"17",fa:"Şeker ve Şekerlemeler"},
+{k:"1701140000",t:"Ham kamış şekeri",f:"17",fa:"Şeker ve Şekerlemeler"},
+{k:"1701910000",t:"Rafine şeker (tatlandırıcı ilave edilmiş)",f:"17",fa:"Şeker ve Şekerlemeler"},
+{k:"1701990000",t:"Diğer rafine şeker",f:"17",fa:"Şeker ve Şekerlemeler"},
+{k:"1704900000",t:"Diğer şeker mamulleri (kakao içermeyenler)",f:"17",fa:"Şeker ve Şekerlemeler"},
+// ── FASIL 18 — KAKAO ────────────────────────────────────────────────────────
+{k:"1801000000",t:"Kakao çekirdeği (bütün veya kırılmış, ham veya kavrulmuş)",f:"18",fa:"Kakao ve Müstahzarları"},
+{k:"1804000000",t:"Kakao yağı",f:"18",fa:"Kakao ve Müstahzarları"},
+{k:"1805000000",t:"Kakao tozu (şeker ilave edilmemiş)",f:"18",fa:"Kakao ve Müstahzarları"},
+{k:"1806100000",t:"Kakao tozu (şeker/tatlandırıcı ilave edilmiş)",f:"18",fa:"Kakao ve Müstahzarları"},
+{k:"1806310000",t:"Dolgulu çikolata tabletleri (2 kg altı ambalaj)",f:"18",fa:"Kakao ve Müstahzarları"},
+{k:"1806900000",t:"Diğer çikolatalı ürünler",f:"18",fa:"Kakao ve Müstahzarları"},
+// ── FASIL 22 — İÇKİLER ──────────────────────────────────────────────────────
+{k:"2201100000",t:"Maden suyu ve gazlı su",f:"22",fa:"İçecekler"},
+{k:"2201900000",t:"Diğer sular (tatlandırılmamış)",f:"22",fa:"İçecekler"},
+{k:"2202100000",t:"Tatlandırılmış/aromalı sular",f:"22",fa:"İçecekler"},
+{k:"2202990000",t:"Diğer alkolsüz içecekler",f:"22",fa:"İçecekler"},
+{k:"2203000000",t:"Malttan yapılan bira",f:"22",fa:"İçecekler"},
+{k:"2204100000",t:"Köpüklü şarap (champagne)",f:"22",fa:"İçecekler"},
+{k:"2204210000",t:"Diğer şarap (2 litreyi geçmeyen kaplarda)",f:"22",fa:"İçecekler"},
+{k:"2208200000",t:"Üzüm artıklarından elde edilen içkiler",f:"22",fa:"İçecekler"},
+{k:"2208300000",t:"Viski",f:"22",fa:"İçecekler"},
+{k:"2208400000",t:"Rom ve tafia",f:"22",fa:"İçecekler"},
+{k:"2208600000",t:"Votka",f:"22",fa:"İçecekler"},
+{k:"2208700000",t:"Likörler",f:"22",fa:"İçecekler"},
+// ── FASIL 24 — TÜTÜN ────────────────────────────────────────────────────────
+{k:"2401100000",t:"Tütün (damarı alınmamış)",f:"24",fa:"Tütün"},
+{k:"2401200000",t:"Tütün (damarı alınmış/kısmen)",f:"24",fa:"Tütün"},
+{k:"2402100000",t:"Puro ve sigarillo",f:"24",fa:"Tütün"},
+{k:"2402200000",t:"Sigara (tütün içeren)",f:"24",fa:"Tütün"},
+{k:"2403110000",t:"Pipo tütünü (nargile tütünü dahil)",f:"24",fa:"Tütün"},
+// ── FASIL 25 — TAŞ/TOPRAK/MİNERALLER ────────────────────────────────────────
+{k:"2501001000",t:"Sofra tuzu",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2505100000",t:"Silika kumlar ve kuarsit kumları",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2507000000",t:"Kaolin ve kaolinli killer",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2515110000",t:"Mermer (ham veya kabaca yontulmuş)",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2516110000",t:"Granit (ham veya kabaca yontulmuş)",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2523210000",t:"Beyaz Portland çimentosu",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+{k:"2523290000",t:"Diğer Portland çimentosu",f:"25",fa:"Tuz/Kükürt/Kireç/Çimento"},
+// ── FASIL 27 — MİNERAL YAKITLAR ─────────────────────────────────────────────
+{k:"2701110000",t:"Antrasit kömür",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2701120000",t:"Bitümlü kömür",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2709000000",t:"Ham petrol",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2710120000",t:"Hafif yağlar (benzin dahil)",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2710190000",t:"Diğer petrol yağları (motorin)",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2711110000",t:"Sıvılaştırılmış doğal gaz (LNG)",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2711120000",t:"Propan (sıvılaştırılmış)",f:"27",fa:"Mineral Yakıtlar"},
+{k:"2711130000",t:"Bütan (sıvılaştırılmış)",f:"27",fa:"Mineral Yakıtlar"},
+// ── FASIL 28 — İNORGANİK KİMYASALLAR ───────────────────────────────────────
+{k:"2804100000",t:"Hidrojen",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2804210000",t:"Argon",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2806100000",t:"Hidroklorik asit",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2807000000",t:"Sülfürik asit; oleum",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2814100000",t:"Susuz amonyak",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2815110000",t:"Sodyum hidroksit (kostik soda, katı)",f:"28",fa:"İnorganik Kimyasallar"},
+{k:"2836200000",t:"Sodyum karbonat (soda külü)",f:"28",fa:"İnorganik Kimyasallar"},
+// ── FASIL 29 — ORGANİK KİMYASALLAR ─────────────────────────────────────────
+{k:"2901100000",t:"Doymuş asiklik hidrokarbonlar",f:"29",fa:"Organik Kimyasallar"},
+{k:"2902110000",t:"Siklohekzan",f:"29",fa:"Organik Kimyasallar"},
+{k:"2902300000",t:"Toluen",f:"29",fa:"Organik Kimyasallar"},
+{k:"2902410000",t:"Orto-ksilen",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905110000",t:"Metanol (metil alkol)",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905120000",t:"Propan-1-ol (propil alkol)",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905130000",t:"Bütanol",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905140000",t:"Diğer bütanoller",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905150000",t:"Pentanol (amil alkol)",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905160000",t:"Oktanol (oktil alkol)",f:"29",fa:"Organik Kimyasallar"},
+{k:"2905170000",t:"Dodekan-1-ol, hekzadekan-1-ol",f:"29",fa:"Organik Kimyasallar"},
+{k:"2907110000",t:"Fenol",f:"29",fa:"Organik Kimyasallar"},
+{k:"2915210000",t:"Asetik asit",f:"29",fa:"Organik Kimyasallar"},
+// ── FASIL 30 — İLAÇLAR ──────────────────────────────────────────────────────
+{k:"3002130000",t:"İmmünolojik ürünler (karışık, dozlanmamış)",f:"30",fa:"İlaçlar"},
+{k:"3004200000",t:"Antibiyotik içeren ilaçlar (dozlanmış)",f:"30",fa:"İlaçlar"},
+{k:"3004320000",t:"Kortikosteroid içeren ilaçlar (dozlanmış)",f:"30",fa:"İlaçlar"},
+{k:"3004500000",t:"Vitamin içeren diğer ilaçlar",f:"30",fa:"İlaçlar"},
+{k:"3005100000",t:"Yapışkanlı sargılar ve benzeri (ilaçlı/cerrahi)",f:"30",fa:"İlaçlar"},
+{k:"3006100000",t:"Cerrahi katgüt ve dikiş malzemeleri",f:"30",fa:"İlaçlar"},
+// ── FASIL 31 — GÜBRELER ─────────────────────────────────────────────────────
+{k:"3101000000",t:"Hayvansal/bitkisel gübreler",f:"31",fa:"Gübreler"},
+{k:"3102100000",t:"Üre (azot oranı %45'ten fazla)",f:"31",fa:"Gübreler"},
+{k:"3102210000",t:"Amonyum sülfat",f:"31",fa:"Gübreler"},
+{k:"3102300000",t:"Amonyum nitrat",f:"31",fa:"Gübreler"},
+{k:"3104200000",t:"Potasyum klorür",f:"31",fa:"Gübreler"},
+{k:"3105200000",t:"Mineral veya kimyasal gübreler (azot+fosfor+potasyum)",f:"31",fa:"Gübreler"},
+// ── FASIL 32 — BOYALAR ───────────────────────────────────────────────────────
+{k:"3204110000",t:"Dağılgan boyarmaddeler",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3204160000",t:"Reaktif boyarmaddeler",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3208100000",t:"Poliester bazlı boyalar ve vernikler",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3208200000",t:"Akrilik/vinil polimer bazlı boyalar",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3209100000",t:"Akrilik/vinil polimer bazlı sulu boyalar",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3210000000",t:"Diğer boyalar ve vernikler",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3212900000",t:"Boyalar (tokluk/folyo dahil)",f:"32",fa:"Boyalar/Vernikler"},
+{k:"3214100000",t:"Cam macunu, reçine macunu",f:"32",fa:"Boyalar/Vernikler"},
+// ── FASIL 33 — KOZMETİK ─────────────────────────────────────────────────────
+{k:"3301120000",t:"Portakal esansiyel yağı",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3301130000",t:"Limon esansiyel yağı",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3301290000",t:"Diğer narenciye esansiyel yağları",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3303000000",t:"Parfüm ve tuvalet suları",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3304100000",t:"Dudak makyaj ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3304200000",t:"Göz makyaj ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3304300000",t:"Tırnak makyaj ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3304910000",t:"Pudra (yüz için)",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3304990000",t:"Diğer güzellik/cilt bakım ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3305100000",t:"Şampuan",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3305200000",t:"Saç dalgalandırma/düzleştirme ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3305300000",t:"Saç spreyi (lakeler)",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3305900000",t:"Diğer saç bakım ürünleri",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3307100000",t:"Tıraş öncesi/sonrası ürünler",f:"33",fa:"Parfüm/Kozmetik"},
+{k:"3307200000",t:"Deodorant ve antiperspiranlar",f:"33",fa:"Parfüm/Kozmetik"},
+// ── FASIL 34 — SABUN/DETERJAN ────────────────────────────────────────────────
+{k:"3401110000",t:"Sabun (tıbbi kullanım için)",f:"34",fa:"Sabun/Deterjan"},
+{k:"3401190000",t:"Sabun (diğer)",f:"34",fa:"Sabun/Deterjan"},
+{k:"3401200000",t:"Sabun (pullar, gevrekler, toz, macun vb.)",f:"34",fa:"Sabun/Deterjan"},
+{k:"3402110000",t:"Anyonik yüzey aktif maddeler",f:"34",fa:"Sabun/Deterjan"},
+{k:"3402120000",t:"Katyonik yüzey aktif maddeler",f:"34",fa:"Sabun/Deterjan"},
+{k:"3402190000",t:"Diğer yüzey aktif maddeler",f:"34",fa:"Sabun/Deterjan"},
+{k:"3402200000",t:"Deterjanlar (deterjan maddesi içeren müstahzarlar)",f:"34",fa:"Sabun/Deterjan"},
+{k:"3402901000",t:"Sıvı deterjan",f:"34",fa:"Sabun/Deterjan"},
+// ── FASIL 38 — ÇEŞİTLİ KİMYASAL ÜRÜNLER ────────────────────────────────────
+{k:"3808910000",t:"Böcek öldürücüler (insektisidler)",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3808920000",t:"Mantar öldürücüler (fungisidler)",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3808930000",t:"Yabancı ot öldürücüler (herbisidler)",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3808940000",t:"Dezenfektanlar",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3811210000",t:"Petrol yağlarına eklenen katkı maddeleri",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3814000000",t:"Karışık organik çözücüler ve tinnerler",f:"38",fa:"Çeşitli Kimyasallar"},
+{k:"3824990000",t:"Kimyasal sanayi müstahzarları (diğer)",f:"38",fa:"Çeşitli Kimyasallar"},
+// ── FASIL 39 — PLASTİK ──────────────────────────────────────────────────────
+{k:"3901100000",t:"Polietilen (yoğunluğu 0,94'ten az, primer form)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3901200000",t:"Polietilen (yoğunluğu 0,94 veya daha fazla, primer form)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3901300000",t:"Etilen-vinil asetat kopolimerleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3902100000",t:"Polipropilen (primer form)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3902200000",t:"Poliizobutilen",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3902300000",t:"Propen kopolimerleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3903110000",t:"Genleştirilmiş polistiren",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3903190000",t:"Diğer polistiren",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3903200000",t:"Stiren-akrilonitril kopolimerleri (SAN)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3903300000",t:"ABS (akrilonitril-bütadien-stiren) kopolimerleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3904100000",t:"Poli(vinil klorür) (PVC, plastifiyan ilave edilmemiş)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3904210000",t:"Poli(vinil klorür) (plastifiyan ilave edilmiş)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3904610000",t:"Politetrafloroetilen (PTFE/Teflon)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3906100000",t:"Poli(metil metakrilat) (PMMA/akrilik cam)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3907100000",t:"Polialksametilen glikoller (POM/asetal)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3907300000",t:"Epoksit reçineler",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3907610000",t:"Poli(etilen tereftalat) (PET, viskozite sayısı ≥78)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3907690000",t:"Diğer poli(etilen tereftalat) (PET)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3908100000",t:"Poliamid-6, -11, -12, -6,6, -6,9, -6,10, -6,12",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3909310000",t:"Poli(metilen fenilizosiyonat) (MDI, polimerik)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3909500000",t:"Poliüretan",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3910000000",t:"Silikonlar (primer form)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3911100000",t:"Petrol reçineleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3916100000",t:"Polietilen profiller",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3916200000",t:"PVC profiller",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917100000",t:"Suni bağırsaklar (sert proteinlerden/selüloz plastikten)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917210000",t:"Plastik borular (sert, dikişsiz PVC)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917220000",t:"Plastik borular (sert, dikişsiz polietilen)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917230000",t:"Plastik borular (sert, dikişsiz polipropilen)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917290000",t:"Plastik borular (sert, diğer)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917310000",t:"Plastik borular (esnek, min. %18 plastifiyan)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3917320000",t:"Plastik borular (diğer, dikişsiz, basınca dayanıklı değil)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3918100000",t:"PVC yer kaplamaları",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3919100000",t:"Plastik self-adhesif plakalar/şeritler (rulo)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920100000",t:"Polietilen plaka/tabaka/film (gözeneksiz, takviyesiz)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920200000",t:"Polipropilen plaka/tabaka/film",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920300000",t:"Polistiren plaka/tabaka/film",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920430000",t:"PVC plaka/tabaka/film (plastifiyan içeren)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920490000",t:"PVC plaka/tabaka/film (diğer)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920510000",t:"PMMA (akrilik cam) plaka/tabaka",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3920620000",t:"Poli(etilen tereftalat) film (PET film)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3921110000",t:"Genleştirilmiş polistiren plaka (sünger)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3921120000",t:"Genleştirilmiş polipropilen ürünler",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3921130000",t:"Genleştirilmiş poliüretan ürünler (köpük)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3923100000",t:"Plastik kutular, sandıklar, fıçılar ve benzeri",f:"39",fa:"Plastik ve Mamulleri",a:"Taşıma ve depolama için plastik kaplar. Plastik kasa, sandık, sepet"},
+{k:"3923210000",t:"Plastik torbalar ve keseler (polietilen)",f:"39",fa:"Plastik ve Mamulleri",a:"Polietilen poşet, naylon torba, plastik ambalaj torbası"},
+{k:"3923290000",t:"Plastik torbalar (diğer plastikten)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3923300000",t:"Plastik damacana, şişe, matara ve benzerleri",f:"39",fa:"Plastik ve Mamulleri",a:"İçecek şişeleri, su bidonu, plastik ambalaj şişeleri"},
+{k:"3923400000",t:"Plastik bobin, makara ve benzeri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3923500000",t:"Plastik tıpa, kapak, kapsül ve kapama elemanları",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3923900000",t:"Diğer plastik taşıma/ambalaj kapları",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3924100000",t:"Plastik sofra ve mutfak eşyası",f:"39",fa:"Plastik ve Mamulleri",a:"Plastik tabak, bardak, çatal, kaşık, bıçak"},
+{k:"3924900000",t:"Diğer plastik ev eşyası ve hijyen/tuvalet malzemeleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3925100000",t:"Plastik rezervuarlar, tanklar, fıçılar (300 litreyi geçen)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3925200000",t:"Plastik kapılar, pencereler ve çerçeveleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3925300000",t:"Plastik kepenk, stor ve jaluziler",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3925900000",t:"Diğer inşaat plastiği",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3926100000",t:"Plastik ofis ve okul malzemeleri",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3926200000",t:"Plastik giyim eşyası ve aksesuarları",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3926300000",t:"Mobilya teçhizatı (plastik)",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3926400000",t:"Plastik heykel ve süs eşyası",f:"39",fa:"Plastik ve Mamulleri"},
+{k:"3926900000",t:"Diğer plastik mamulleri",f:"39",fa:"Plastik ve Mamulleri",a:"Saksı, fide kasası, plastik bahçe ürünleri, plastik aksesuarlar"},
+// ── FASIL 40 — KAUÇUK ───────────────────────────────────────────────────────
+{k:"4001100000",t:"Doğal kauçuk lateksi (vulkanize edilmiş olsun/olmasın)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4001210000",t:"Smoked sheets doğal kauçuk",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4002110000",t:"Stirenbütadien kauçuğu (SBR)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4005100000",t:"Kauçuk bileşimleri (sülür içerenler)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4009110000",t:"Kauçuk borular (takviyesiz, bağlantı parçasız)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4011100000",t:"Otomobil lastiği (yeni, radyal)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4011200000",t:"Otobüs/kamyon lastiği (yeni)",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4016100000",t:"Köpük kauçuktan eşya",f:"40",fa:"Kauçuk ve Mamulleri"},
+{k:"4016910000",t:"Yer kaplamaları (kauçuk)",f:"40",fa:"Kauçuk ve Mamulleri"},
+// ── FASIL 44 — AHŞAP ────────────────────────────────────────────────────────
+{k:"4403110000",t:"Orman örtüsünden ağaç gövdeleri (iğne yapraklı)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4407100000",t:"Iğne yapraklı kereste (2 cm'den fazla kalınlıkta)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4407210000",t:"Meşe kereste",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4408100000",t:"İğne yapraklı kaplama tahtaları",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4410110000",t:"Sunta levha (yoğunluğu 0,8 g/cm³'ü geçmeyenler)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4411120000",t:"MDF levha (yoğunluğu 0,8 g/cm³'ü geçmeyenler)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4412100000",t:"Bambu kontraplak",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4412310000",t:"Kontraplak (en az bir katman iğne yapraklı)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4418110000",t:"Çatı kaplaması için pencere vb. (iğne yapraklı)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4418200000",t:"Kapı ve çerçeveleri (ahşap)",f:"44",fa:"Ahşap ve Mamulleri"},
+{k:"4418400000",t:"Kalıp tahtası (beton için)",f:"44",fa:"Ahşap ve Mamulleri"},
+// ── FASIL 48 — KAĞIT ────────────────────────────────────────────────────────
+{k:"4801000000",t:"Gazete kağıdı (rulo veya tabaka)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4802550000",t:"Baskı ve yazı kağıdı (ağırlığı 40-150 g/m²)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4803000000",t:"Tuvalet/yüz mendili kağıdı",f:"48",fa:"Kağıt ve Karton"},
+{k:"4804110000",t:"Kraft kağıdı (ağartılmamış, rulo)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4808100000",t:"Oluklu kağıt ve karton",f:"48",fa:"Kağıt ve Karton"},
+{k:"4809200000",t:"Karbon kağıdı",f:"48",fa:"Kağıt ve Karton"},
+{k:"4810130000",t:"Kaolin kaplı baskı kağıdı",f:"48",fa:"Kağıt ve Karton"},
+{k:"4811510000",t:"Beyazlatılmış kağıt (yağ geçirmez)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4816200000",t:"Baskısız kağıt (fotokopi kağıdı)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4819100000",t:"Karton kutular (ondüle karton)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4819200000",t:"Karton kutular (ondüle olmayan)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4819300000",t:"Kağıt torbalar (ağzı açık)",f:"48",fa:"Kağıt ve Karton"},
+{k:"4819400000",t:"Diğer kağıt torbalar",f:"48",fa:"Kağıt ve Karton"},
+// ── FASIL 52 — PAMUK ────────────────────────────────────────────────────────
+{k:"5201000000",t:"Ham pamuk (çiğit ayrılmamış)",f:"52",fa:"Pamuk"},
+{k:"5205110000",t:"Tek katlı pamuk ipliği (>%85 pamuk, 14 metrik no'ya kadar)",f:"52",fa:"Pamuk"},
+{k:"5208110000",t:"Beyazlatılmamış düz dokuma pamuklu kumaş (ağırlığı ≤100 g/m²)",f:"52",fa:"Pamuk"},
+{k:"5208210000",t:"Beyazlatılmış düz dokuma pamuklu kumaş",f:"52",fa:"Pamuk"},
+// ── FASIL 61 — ÖRME GİYİM ───────────────────────────────────────────────────
+{k:"6101200000",t:"Erkek/erkek çocuk overcoat/ceket (pamuklu, örme)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6101300000",t:"Erkek/erkek çocuk overcoat/ceket (suni lifli, örme)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6102100000",t:"Kadın/kız çocuk overcoat/ceket (yünlü, örme)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6104430000",t:"Kadın/kız çocuk elbise (suni lifli, örme)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6105100000",t:"Erkek/erkek çocuk gömlek (pamuklu, örme)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6109100000",t:"Tişört ve diğer atlet (pamuklu)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6110200000",t:"Kazak, sweatshirt (pamuklu)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6110300000",t:"Kazak, sweatshirt (suni lifli)",f:"61",fa:"Örme Giyim Eşyası"},
+{k:"6115210000",t:"Kadın külotlu çorabı (suni lifli)",f:"61",fa:"Örme Giyim Eşyası"},
+// ── FASIL 62 — DOKUMA GİYİM ─────────────────────────────────────────────────
+{k:"6201110000",t:"Erkek overcoat (yünlü/tüylü hayvan kılından)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6201920000",t:"Erkek anorak, rüzgarlık (pamuklu)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6203110000",t:"Erkek takım elbise (yünlü)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6203420000",t:"Erkek pantolon (pamuklu)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6204610000",t:"Kadın pantolon (yünlü)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6204620000",t:"Kadın pantolon (pamuklu)",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6211110000",t:"Erkek mayo",f:"62",fa:"Dokuma Giyim Eşyası"},
+{k:"6211120000",t:"Kadın mayo",f:"62",fa:"Dokuma Giyim Eşyası"},
+// ── FASIL 63 — DİĞER TEKSTİL ────────────────────────────────────────────────
+{k:"6301100000",t:"Elektrikli battaniyeler",f:"63",fa:"Diğer Tekstil"},
+{k:"6301200000",t:"Yünlü battaniyeler",f:"63",fa:"Diğer Tekstil"},
+{k:"6301400000",t:"Sentetik elyaflı battaniyeler",f:"63",fa:"Diğer Tekstil"},
+{k:"6302100000",t:"Örme yatak çarşafları",f:"63",fa:"Diğer Tekstil"},
+{k:"6302210000",t:"Pamuklu yatak çarşafları (baskısız)",f:"63",fa:"Diğer Tekstil"},
+{k:"6303120000",t:"Sentetik elyaflı perdeler",f:"63",fa:"Diğer Tekstil"},
+{k:"6304110000",t:"Örme yatak örtüsü",f:"63",fa:"Diğer Tekstil"},
+{k:"6305100000",t:"Jüt veya diğer bitkisel tekstil liflerinden çuvallar",f:"63",fa:"Diğer Tekstil"},
+{k:"6305320000",t:"Polietilen veya polipropilen şeritlerden çuvallar",f:"63",fa:"Diğer Tekstil"},
+{k:"6307900000",t:"Diğer konfeksiyon tekstil ürünleri",f:"63",fa:"Diğer Tekstil"},
+// ── FASIL 64 — AYAKKABI ─────────────────────────────────────────────────────
+{k:"6401100000",t:"Su geçirmez ayakkabı (metal burunlu)",f:"64",fa:"Ayakkabı"},
+{k:"6402990000",t:"Diğer ayakkabı (plastik/kauçuk dış/iç taban)",f:"64",fa:"Ayakkabı"},
+{k:"6403510000",t:"Deri ayakkabı (topuk yüksekliği >3 cm, bilekten kısa)",f:"64",fa:"Ayakkabı"},
+{k:"6403990000",t:"Diğer deri ayakkabı",f:"64",fa:"Ayakkabı"},
+{k:"6404110000",t:"Spor ayakkabısı (tekstil dış taban, tekstil iç taban)",f:"64",fa:"Ayakkabı"},
+// ── FASIL 69 — SERAMİK ───────────────────────────────────────────────────────
+{k:"6901000000",t:"Isıya dayanıklı tuğla, blok, kiremit (silisli)",f:"69",fa:"Seramik Ürünler"},
+{k:"6902100000",t:"Isıya dayanıklı refrakter tuğlalar",f:"69",fa:"Seramik Ürünler"},
+{k:"6904100000",t:"Yapı tuğlaları (seramik)",f:"69",fa:"Seramik Ürünler"},
+{k:"6905100000",t:"Çatı kiremitleri (seramik)",f:"69",fa:"Seramik Ürünler"},
+{k:"6907210000",t:"Seramik yer ve duvar karoları (su emmesi ≤%0,5)",f:"69",fa:"Seramik Ürünler"},
+{k:"6907220000",t:"Seramik yer ve duvar karoları (su emmesi %0,5-10)",f:"69",fa:"Seramik Ürünler"},
+{k:"6911100000",t:"Porselen sofra ve mutfak eşyası",f:"69",fa:"Seramik Ürünler"},
+{k:"6912000000",t:"Seramik sofra, mutfak ve ev eşyası (porselen dışı)",f:"69",fa:"Seramik Ürünler"},
+{k:"6914100000",t:"Porselen seramik eşya (diğer)",f:"69",fa:"Seramik Ürünler"},
+// ── FASIL 70 — CAM ───────────────────────────────────────────────────────────
+{k:"7003120000",t:"Renklendirilmiş cam (çekme/üfleme)",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7005210000",t:"Yüzey işlemi görmüş düz cam (kaplamalı)",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7007110000",t:"Temperlenmiş güvenlik camı (otomobil ön camı hariç)",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7007210000",t:"Lamine güvenlik camı (otomobil ön camı hariç)",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7008000000",t:"Çok cidarlı yalıtım camı",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7009100000",t:"Dikiz aynası (araç için)",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7013100000",t:"Cam seramikten sofra/mutfak eşyası",f:"70",fa:"Cam ve Cam Eşya"},
+{k:"7013280000",t:"Diğer cam bardak",f:"70",fa:"Cam ve Cam Eşya"},
+// ── FASIL 72 — DEMİR/ÇELİK ──────────────────────────────────────────────────
+{k:"7201100000",t:"Dökme demir (fosfor içeriği ≤%0,5)",f:"72",fa:"Demir ve Çelik"},
+{k:"7204100000",t:"Dökme demir hurdası",f:"72",fa:"Demir ve Çelik"},
+{k:"7204410000",t:"Talaş ve döküntüler (çelik tornalama)",f:"72",fa:"Demir ve Çelik"},
+{k:"7208100000",t:"Genişliği ≥600 mm sıcak haddelenmiş alaşımsız çelik",f:"72",fa:"Demir ve Çelik"},
+{k:"7209160000",t:"Soğuk haddelenmiş alaşımsız çelik (0,5-1 mm)",f:"72",fa:"Demir ve Çelik"},
+{k:"7210490000",t:"Çinko kaplı çelik (diğer)",f:"72",fa:"Demir ve Çelik"},
+{k:"7213100000",t:"İnşaat betonu için nervürlü çelik çubuk",f:"72",fa:"Demir ve Çelik"},
+{k:"7214200000",t:"Çelik çubuk (nervürlü/oluklu)",f:"72",fa:"Demir ve Çelik"},
+{k:"7217100000",t:"Alaşımsız çelik tel (kaplamsız)",f:"72",fa:"Demir ve Çelik"},
+// ── FASIL 73 — DEMİR/ÇELİK EŞYA ────────────────────────────────────────────
+{k:"7301100000",t:"Çelik kazıklar",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7302100000",t:"Demiryolu rayları",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7304110000",t:"Çelik boru (iç çap ≤406,4 mm, dikişsiz, petrol/gaz)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7306300000",t:"Dairesel kesitli çelik boru (diğer, kaynaklı)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7308100000",t:"Köprüler ve köprü bölümleri (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7308200000",t:"Kule ve kafes direkler (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7308300000",t:"Kapılar, pencereler ve çerçeveleri (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7308400000",t:"Perde duvarlar dahil destek ekipmanları (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7310210000",t:"Demir/çelik kutu ve konserveler (kapasite <50 litre)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7312100000",t:"Burulmuş çelik teller ve halatlar",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7314200000",t:"Çelik tel örgü (paslanmaz çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7318150000",t:"Çelik vidalar ve cıvatalar",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7318160000",t:"Somunlar (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7320100000",t:"Yaprak yaylar (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7320200000",t:"Sarmal yaylar (çelik)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7323910000",t:"Döküm demir mutfak eşyası (emaye kaplı)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7323990000",t:"Çelik mutfak/ev eşyası (diğer)",f:"73",fa:"Demir/Çelik Eşya"},
+{k:"7326900000",t:"Demir/çelikten diğer eşya",f:"73",fa:"Demir/Çelik Eşya",a:"Çelik konstrüksiyon parçaları, metal bağlantı elemanları"},
+// ── FASIL 76 — ALÜMİNYUM ────────────────────────────────────────────────────
+{k:"7601100000",t:"Alaşımsız alüminyum (ham)",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7601200000",t:"Alaşımlı alüminyum (ham)",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7604100000",t:"Alaşımsız alüminyum çubuk ve profil",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7604210000",t:"İçi boş alüminyum profiller",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7604290000",t:"Alaşımlı alüminyum profil (diğer)",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7606110000",t:"Dikdörtgen alüminyum plaka/tabaka (alaşımsız)",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7607110000",t:"Alüminyum folyo (kalınlık ≤0,2 mm)",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7610100000",t:"Alüminyum kapı, pencere ve eşikleri",f:"76",fa:"Alüminyum ve Mamulleri"},
+{k:"7615100000",t:"Alüminyum sofra ve mutfak eşyası",f:"76",fa:"Alüminyum ve Mamulleri"},
+// ── FASIL 84 — MAKİNELER ────────────────────────────────────────────────────
+{k:"8401100000",t:"Nükleer reaktörler",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8406810000",t:"Buhar türbinleri (75 kW'ı geçenler)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8407310000",t:"İçten yanmalı pistonlu motorlar (250 cm³'ten az, silindir hacmi)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8408100000",t:"Gemi dizel motoru",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8409910000",t:"Benzinli motor parçaları",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8413110000",t:"Yakıt dispenserleri için pompalar",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8413700000",t:"Sıvı pompaları (diğer)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8414100000",t:"Vakum pompaları",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8414510000",t:"Fan ve tabla fanları (motor gücü ≤125 W)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8414800000",t:"Diğer hava/gaz pompaları ve fanlar",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8415100000",t:"Klima (duvar/pencere tipi)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8415810000",t:"Klima (soğutma üniteli, diğer)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8418100000",t:"Buzdolabı-dondurucu kombine (ayrı dış kapılı)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8418210000",t:"Buzdolabı (ev tipi, kompresörlü)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8418300000",t:"Derin dondurucu (yatay tip, ≤800 litre)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8421190000",t:"Santrifüj (diğer)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8421210000",t:"Su filtreleme/arıtma makineleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8422110000",t:"Bulaşık makinesi (ev tipi)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8422190000",t:"Endüstriyel bulaşık makinesi",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8422300000",t:"Doldurma, kapama, mühürleme makineleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8422400000",t:"Ambalajlama/paketleme makineleri",f:"84",fa:"Makineler/Mekanik Cihazlar",a:"Paketleme, shrink, stretch film makineleri"},
+{k:"8423100000",t:"Kişisel tartılar",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8423810000",t:"Tartılar (≤30 kg kapasiteli)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8424100000",t:"Yangın söndürücüler",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8425110000",t:"Makara tipi vinçler (elektrik motorlu)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8425310000",t:"Bocurgat ve ırgat (elektrik motorlu)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8428330000",t:"Bantlı konveyörler",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8429110000",t:"Buldozerler (paletli)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8429520000",t:"Ekskavatörler",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8430490000",t:"Delme/delik açma makineleri (diğer)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8432110000",t:"Sabanlar (motorlu çekme için)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8436100000",t:"Hayvan yemi hazırlama makineleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8443120000",t:"Ofset baskı makineleri (rulo kağıt beslemeli)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8450110000",t:"Çamaşır makinesi (≤10 kg, tamamen otomatik)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8451210000",t:"Kurutma makinesi (≤10 kg kapasiteli)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8452100000",t:"Dikiş makineleri (ev tipi)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8462110000",t:"Dövme makineleri (hidrolik)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471300000",t:"Taşınabilir bilgisayar (≤10 kg, ağırlık)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471410000",t:"Mikrobilgisayarlar (diğer)",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471500000",t:"Masaüstü bilgisayar işlem birimleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471600000",t:"Klavye, fare, monitör girdi/çıktı birimleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471700000",t:"Disk depolama birimleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+{k:"8471800000",t:"Diğer bilgisayar girdi/çıktı birimleri",f:"84",fa:"Makineler/Mekanik Cihazlar"},
+// ── FASIL 85 — ELEKTRİKLİ CİHAZLAR ─────────────────────────────────────────
+{k:"8501100000",t:"Elektrik motorları (güç ≤37,5 W)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8501520000",t:"AC motorlar, çok fazlı (18,4-75 kW)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8502110000",t:"Dizel jeneratör seti (≤75 kVA)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8504210000",t:"Sıvı dielektrikli transformatörler (≤650 kVA)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8504400000",t:"Statik konvertörler (güç elektroniği)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8506100000",t:"Manganez dioksitli piller",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8507100000",t:"Kurşun-asit aküler (akümülatörler)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8507600000",t:"Lityum iyon aküler",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516100000",t:"Elektrikli şofbenler/ısıtıcılar",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516310000",t:"Saç kurutma makinesi",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516500000",t:"Mikrodalga fırın",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516600000",t:"Diğer fırınlar (elektrikli)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516710000",t:"Kahve/çay demleme makineleri",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8516800000",t:"Isıtıcı dirençler",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8517110000",t:"Telsiz telefonlar (kablosuz el cihazı)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8517120000",t:"Cep telefonu",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8517620000",t:"Multimedya iletişim cihazları (tablet dahil)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8518100000",t:"Mikrofon",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8518210000",t:"Tekli hoparlör",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8518300000",t:"Kulaklık, kulaklık-mikrofon kombinasyonu",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8521100000",t:"Video kayıt/oynatma cihazları (manyetik bantlı)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8525500000",t:"İletim cihazları (kamera dahil)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8527130000",t:"Araç radyosu (ses kayıtçılı)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8528720000",t:"Renkli monitör ve televizyonlar",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8534000000",t:"Baskılı devre kartları",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8536490000",t:"Röleler (80 V'tan fazla)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8536500000",t:"Elektrik anahtarları (diğer, 1000 V'tan az)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8536690000",t:"Priz ve soketler (1000 V'tan az, diğer)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8541100000",t:"Diyotlar",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8541210000",t:"Transistörler (dağıtılan güç <1 W)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8541400000",t:"Fotovoltaik hücreler (güneş paneli)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8544110000",t:"Bakır iletkenli tel (yalıtımlı, ≤1 mm)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8544420000",t:"Plastik yalıtımlı elektrik kablosu (1000 V'tan az)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+{k:"8544600000",t:"Diğer elektrik iletkenleri (1000 V'tan fazla)",f:"85",fa:"Elektrikli Makine/Cihaz"},
+// ── FASIL 87 — MOTORLU TAŞITLAR ─────────────────────────────────────────────
+{k:"8701100000",t:"Tek akslı traktörler (motokültör)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8701920000",t:"Tarım/orman traktörleri (18,4-37 kW)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8702100000",t:"Otobüs/minibüs (dizel, ≥10 kişi)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8703210000",t:"Binek otomobil (motor hacmi ≤1000 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8703220000",t:"Binek otomobil (motor hacmi 1000-1500 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8703230000",t:"Binek otomobil (motor hacmi 1500-3000 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8703240000",t:"Binek otomobil (motor hacmi >3000 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8704210000",t:"Kamyon (dizel, GVW ≤5 ton)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8704220000",t:"Kamyon (dizel, GVW 5-20 ton)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8704230000",t:"Kamyon (dizel, GVW >20 ton)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8705100000",t:"Vinçli araçlar",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8705300000",t:"İtfaiye araçları",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8706000000",t:"Motorlu taşıt şasileri (motoru ile birlikte)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8707100000",t:"Binek otomobil gövdeleri",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8708100000",t:"Tamponlar ve parçaları (araç)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8708290000",t:"Karoser parçaları (diğer)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8708400000",t:"Şanzıman ve parçaları",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8708500000",t:"Aktarma aksları ve parçaları",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8708800000",t:"Amortisörler",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8711100000",t:"Motosiklet (motor hacmi ≤50 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8711200000",t:"Motosiklet (motor hacmi 50-250 cm³)",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8712000000",t:"Bisiklet ve diğer pedallı araçlar",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8716100000",t:"Tanker ve diğer özel amaçlı römork",f:"87",fa:"Motorlu Taşıtlar"},
+{k:"8716400000",t:"Diğer römork ve yarı römorklar",f:"87",fa:"Motorlu Taşıtlar"},
+// ── FASIL 90 — OPTİK/ÖLÇÜ ALETLERİ ─────────────────────────────────────────
+{k:"9001100000",t:"Optik fiber ve demetleri",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9001400000",t:"Gözlük camları (görme düzeltici)",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9002110000",t:"Kamera, projektör vb. lens",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9003110000",t:"Plastik gözlük çerçevesi",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9006530000",t:"Fotoğraf makinesi (diğer)",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9021100000",t:"Ortopedik cihazlar",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9021310000",t:"Yapay eklemler",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9025110000",t:"Cıvalı termometre",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9025190000",t:"Diğer termometre",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9025800000",t:"Higrometre ve psikrometre",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9026100000",t:"Sıvı debisi ölçüm cihazları",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9028300000",t:"Elektrik sayaçları",f:"90",fa:"Optik/Ölçü Cihazları"},
+{k:"9030820000",t:"Multimetre",f:"90",fa:"Optik/Ölçü Cihazları"},
+// ── FASIL 94 — MOBİLYA ──────────────────────────────────────────────────────
+{k:"9401100000",t:"Uçak için oturma yerleri",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9401200000",t:"Motorlu taşıt koltukları",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9401300000",t:"Dönebilen koltuklar (yükseklik ayarlı)",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9401610000",t:"Koltuklar (ahşap çerçeveli, dolgulu)",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9401690000",t:"Koltuklar (ahşap çerçeveli, diğer)",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9401800000",t:"Diğer oturma yerleri",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403100000",t:"Metal büro mobilyası",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403200000",t:"Diğer metal mobilya",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403300000",t:"Ahşap büro mobilyası",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403400000",t:"Ahşap mutfak mobilyası",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403500000",t:"Ahşap yatak odası mobilyası",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403600000",t:"Diğer ahşap mobilya",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403700000",t:"Plastik mobilya",f:"94",fa:"Mobilya/Aydınlatma",a:"Plastik sandalye, masa, bahçe mobilyası, plastik raf"},
+{k:"9403810000",t:"Bambu mobilya",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9403890000",t:"Diğer malzemeden mobilya",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9404100000",t:"Yatak tabanları",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9404210000",t:"Kauçuk veya köpük plastikten yatak (kaplı)",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9404290000",t:"Diğer yataklar",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9405100000",t:"Avize ve diğer tavan/duvar aydınlatmaları",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9405200000",t:"Elektrikli masa, yatak odası veya çalışma masası lambaları",f:"94",fa:"Mobilya/Aydınlatma"},
+{k:"9405400000",t:"Diğer elektrikli lambalar ve aydınlatma armatürleri",f:"94",fa:"Mobilya/Aydınlatma"},
+// ── FASIL 95 — OYUNCAK/SPOR ─────────────────────────────────────────────────
+{k:"9503000000",t:"Üç tekerlekli araç, scooter, oyuncak araba (çocuk)",f:"95",fa:"Oyuncak/Spor"},
+{k:"9504200000",t:"Bilardo masası ve aksesuarları",f:"95",fa:"Oyuncak/Spor"},
+{k:"9504300000",t:"Diğer oyunlar (masa tenisi dahil)",f:"95",fa:"Oyuncak/Spor"},
+{k:"9504500000",t:"Video oyun konsolları ve makineleri",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506110000",t:"Kayak ve atlamalı kayaklar",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506190000",t:"Diğer kayak ekipmanları",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506210000",t:"Yelken tahtası (sörf tahtası)",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506310000",t:"Golf sopası (komple)",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506400000",t:"Ping pong malzemeleri",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506510000",t:"Tenis raketleri",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506620000",t:"Şişirilebilir toplar",f:"95",fa:"Oyuncak/Spor"},
+{k:"9506910000",t:"Egzersiz aleti ve jimnastik ekipmanları",f:"95",fa:"Oyuncak/Spor"},
+// ── FASIL 96 — ÇEŞİTLİ MAMUL EŞYA ──────────────────────────────────────────
+{k:"9601100000",t:"Fildişi işlenmiş eşya",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9603100000",t:"Süpürgeler (bağlı dal/çalı/bitki)",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9603210000",t:"Diş fırçaları",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9603290000",t:"Diğer fırçalar (tıraş, saç, tırnak fırçası)",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9603400000",t:"Boya fırçaları ve ruloları",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9603900000",t:"Diğer fırçalar, süpürgeler, paspaslar",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9606100000",t:"Çıtçıtlar ve parçaları",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9606210000",t:"Plastik düğmeler",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9607110000",t:"Fermuarlar (metal dişli)",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9608100000",t:"Tükenmez kalemler",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9608200000",t:"Keçeli ve gözenekli uçlu kalemler",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9609100000",t:"Kalemler (ahşap, kurşun kalemler)",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9612100000",t:"Daktilo ve yazıcı şeridi (kartuş)",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9614000000",t:"Pipo ve pipo ağızlıkları",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9615110000",t:"Plastik saç tarakları",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9616100000",t:"Parfüm atomizörü ve benzeri tuvalet spreyleri",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9617000000",t:"Termos ve diğer vakumlu kaplar",f:"96",fa:"Çeşitli Mamul Eşya"},
+{k:"9618000000",t:"Terzilik mankenleri",f:"96",fa:"Çeşitli Mamul Eşya"},
+];
+
+
 let lastResults = []
 let selectedKod = null
 
@@ -226,51 +816,44 @@ function araKelime(k) {
   ara()
 }
 
-async function ara() {
+function ara() {
   const q = document.getElementById('searchInput').value.trim()
   if (!q || q.length < 2) {
     showStatus('error', 'En az 2 karakter girin.')
     return
   }
 
-  const btn = document.getElementById('searchBtn')
-  btn.disabled = true
-  btn.innerHTML = '<div class="spin"></div> Aranıyor...'
-
-  showStatus('loading', 'Türkiye Ticaret Bakanlığı veritabanı sorgulanıyor...')
   document.getElementById('resultsBox').style.display = 'none'
   document.getElementById('detailBox').style.display = 'none'
   document.getElementById('infoGrid').style.display = 'none'
   selectedKod = null
 
-  try {
-    const res = await fetch(`/.netlify/functions/gtip?q=${encodeURIComponent(q)}`)
-    const data = await res.json()
+  // Offline arama — DB içinde ara
+  const qLow = q.toLowerCase()
+  const results = GTIP_DB.filter(r => {
+    return r.k.includes(q) ||
+      r.t.toLowerCase().includes(qLow) ||
+      (r.fa && r.fa.toLowerCase().includes(qLow)) ||
+      (r.a && r.a.toLowerCase().includes(qLow))
+  }).slice(0, 30).map(r => ({
+    kod: r.k,
+    tanim: r.t,
+    fasil: r.f,
+    fasilAdi: r.fa,
+    aciklama: r.a || '',
+    vergi: r.v || '',
+  }))
 
-    if (!res.ok || data.error) {
-      showStatus('error', data.error || 'Bir hata oluştu.')
-      document.getElementById('infoGrid').style.display = 'grid'
-      return
-    }
+  lastResults = results
 
-    lastResults = data.results || []
-
-    if (!lastResults.length) {
-      showStatus('empty', `"${q}" için sonuç bulunamadı. Farklı bir kelime deneyin.`)
-      document.getElementById('infoGrid').style.display = 'grid'
-      return
-    }
-
-    document.getElementById('statusBox').style.display = 'none'
-    renderResults(lastResults, q)
-
-  } catch (err) {
-    showStatus('error', 'Bağlantı hatası. Netlify Functions etkin mi kontrol edin.')
+  if (!results.length) {
+    showStatus('empty', `"${q}" için sonuç bulunamadı. Farklı bir kelime deneyin.`)
     document.getElementById('infoGrid').style.display = 'grid'
-  } finally {
-    btn.disabled = false
-    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Sorgula`
+    return
   }
+
+  document.getElementById('statusBox').style.display = 'none'
+  renderResults(results, q)
 }
 
 function showStatus(type, msg) {
@@ -288,7 +871,7 @@ function showStatus(type, msg) {
 function renderResults(results, query) {
   const box = document.getElementById('resultsBox')
   const list = document.getElementById('resultsList')
-  document.getElementById('resultsCount').textContent = `${results.length} sonuç — AI önerisi`
+  document.getElementById('resultsCount').textContent = `${results.length} sonuç bulundu`
   box.style.display = 'block'
 
   list.innerHTML = results.map((r, i) => {
