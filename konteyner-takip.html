@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konteyner Takip — Yükleme Simülatörü</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F4F8;--panel:#fff;--border:#E2E8F0;
+  --text:#1B2A3B;--text2:#64748B;
+  --blue:#2E6DA4;--blue2:#1B5285;--blue-light:#EAF2FB;
+  --green:#1D9E75;--r:12px;
+}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:#1B2A3B;height:56px;display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center}
+header h1{color:#fff;font-size:15px;font-weight:600}
+header .sub{color:#556;font-size:12px}
+.nav{margin-left:auto;display:flex;gap:6px}
+.navbtn{padding:6px 12px;border:1px solid #2E4A6A;border-radius:7px;font-size:11px;cursor:pointer;font-family:Arial;font-weight:500;background:transparent;color:#8BAABF}
+.navbtn:hover{background:#243040;color:#fff}
+
+.top-area{padding:16px 20px;display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+
+/* Arama kutusu */
+.search-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px}
+.search-card h2{font-size:16px;font-weight:600;margin-bottom:4px}
+.search-card p{font-size:12px;color:var(--text2);margin-bottom:14px}
+.search-row{display:flex;gap:8px;flex-wrap:wrap}
+.search-row input{
+  flex:1;min-width:200px;padding:10px 14px;border:2px solid var(--border);
+  border-radius:10px;font-size:14px;font-family:Arial;outline:none;
+  text-transform:uppercase;letter-spacing:.05em;
+  transition:border-color .15s
+}
+.search-row input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.1)}
+.search-row input::placeholder{text-transform:none;letter-spacing:0;color:#aaa}
+.line-select{
+  padding:10px 12px;border:2px solid var(--border);border-radius:10px;
+  font-size:13px;font-family:Arial;outline:none;background:#fff;color:var(--text);
+  min-width:180px;cursor:pointer;transition:border-color .15s
+}
+.line-select:focus{border-color:var(--blue)}
+.track-btn{
+  padding:10px 22px;background:var(--blue);color:#fff;border:none;
+  border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;
+  font-family:Arial;white-space:nowrap;display:flex;align-items:center;gap:6px
+}
+.track-btn:hover{background:var(--blue2)}
+.track-btn:disabled{background:#aaa;cursor:not-allowed}
+
+/* Hızlı seçim hatlar */
+.lines-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.line-pill{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  border:1px solid var(--border);border-radius:20px;cursor:pointer;
+  background:#fff;transition:all .12s;font-size:12px;color:var(--text2)
+}
+.line-pill:hover{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.line-pill.active{border-color:var(--blue);background:var(--blue);color:#fff}
+.line-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Son aramalar */
+.recent-box{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#aaa}
+.recent-tag{
+  padding:3px 10px;border:1px solid #e2e8f0;border-radius:12px;
+  cursor:pointer;color:var(--text2);background:#fff;transition:all .12s
+}
+.recent-tag:hover{border-color:var(--blue);color:var(--blue)}
+
+/* Durum mesajı */
+.status-bar{
+  padding:10px 14px;border-radius:10px;font-size:13px;
+  display:flex;align-items:center;gap:8px
+}
+.status-bar.info{background:var(--blue-light);color:#0C447C}
+.status-bar.warn{background:#FFF8E1;color:#7D5A00;border:1px solid #F0C040}
+.status-bar.err{background:#FEE;color:#C0392B;border:1px solid #fcc}
+
+/* Iframe alanı */
+.iframe-wrap{
+  flex:1;display:flex;flex-direction:column;
+  border-top:1px solid var(--border);min-height:0
+}
+.iframe-header{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0
+}
+.iframe-header .url-bar{
+  flex:1;font-size:11px;color:#888;background:#f8fafc;
+  border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;
+  font-family:'Courier New',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.iframe-ctrl{padding:5px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-family:Arial;color:var(--text2)}
+.iframe-ctrl:hover{background:var(--blue-light);color:var(--blue);border-color:#AAC5E0}
+iframe#trackFrame{
+  flex:1;border:none;width:100%;
+  min-height:500px
+}
+.iframe-placeholder{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:40px;color:#aaa;text-align:center
+}
+.iframe-placeholder svg{opacity:.3}
+.iframe-placeholder h3{font-size:15px;font-weight:500;color:#888}
+.iframe-placeholder p{font-size:13px;max-width:400px;line-height:1.6}
+
+/* Alternatif linkler */
+.alt-links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.alt-link{
+  padding:7px 14px;border:1px solid var(--border);border-radius:8px;
+  font-size:12px;color:var(--blue);background:#fff;cursor:pointer;
+  text-decoration:none;transition:all .12s;display:flex;align-items:center;gap:5px
+}
+.alt-link:hover{background:var(--blue-light);border-color:#AAC5E0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+  </div>
+  <h1>Konteyner Takip</h1>
+  <span class="sub">Shipping Line Sorgulama</span>
+  <nav class="nav">
+    <button class="navbtn" onclick="location.href='index.html'">Simülatör</button>
+    <button class="navbtn" onclick="location.href='ceki-listesi.html'">Çeki Listesi</button>
+    <button class="navbtn" onclick="location.href='gumruk.html'">Gümrük</button>
+  </nav>
+</header>
+
+<div class="top-area">
+
+  <div class="search-card">
+    <h2>Konteyner Sorgula</h2>
+    <p>Konteyner numaranızı girin ve shipping line seçin. Takip bilgisi aynı ekranda açılır.</p>
+
+    <div class="search-row">
+      <input type="text" id="contNo" placeholder="MSCU1234567 veya MAEU1234567..."
+        maxlength="15"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        onkeydown="if(event.key==='Enter') takipEt()">
+      <select class="line-select" id="lineSelect" onchange="lineSecildi()">
+        <option value="">— Shipping Line Seç —</option>
+        <option value="maersk">Maersk</option>
+        <option value="msc">MSC</option>
+        <option value="cmacgm">CMA CGM</option>
+        <option value="evergreen">Evergreen</option>
+        <option value="hapag">Hapag-Lloyd</option>
+        <option value="cosco">COSCO</option>
+        <option value="one">ONE (Ocean Network Express)</option>
+        <option value="yangming">Yang Ming</option>
+        <option value="zim">ZIM</option>
+        <option value="hmm">HMM</option>
+        <option value="arkas">ARKAS</option>
+        <option value="turkon">TURKON LINE</option>
+        <option value="unifeeder">Unifeeder</option>
+      </select>
+      <button class="track-btn" id="trackBtn" onclick="takipEt()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Sorgula
+      </button>
+    </div>
+
+    <!-- Hızlı hat seçimi -->
+    <div class="lines-grid" id="linesGrid">
+      <span style="font-size:11px;color:#aaa;align-self:center">Hızlı seç:</span>
+    </div>
+
+    <!-- Son aramalar -->
+    <div id="recentBox" style="display:none;margin-top:10px">
+      <div class="recent-box">
+        <span>Son aramalar:</span>
+        <div id="recentList"></div>
+      </div>
+    </div>
+
+    <!-- Durum -->
+    <div id="statusBar" style="display:none;margin-top:10px"></div>
+  </div>
+
+</div>
+
+<!-- İframe alanı -->
+<div class="iframe-wrap" id="iframeWrap">
+  <div class="iframe-placeholder" id="placeholder">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+    <h3>Konteyner numarası girin ve sorgulayın</h3>
+    <p>Shipping line seçip konteyner numaranızı girdikten sonra takip bilgisi burada görünür.</p>
+    <div class="alt-links" id="quickLinks">
+      <a class="alt-link" href="https://www.maersk.com/tracking" target="_blank">🚢 Maersk Takip</a>
+      <a class="alt-link" href="https://www.msc.com/track-a-shipment" target="_blank">🚢 MSC Takip</a>
+      <a class="alt-link" href="https://www.cma-cgm.com/ebusiness/tracking" target="_blank">🚢 CMA CGM</a>
+      <a class="alt-link" href="https://www.hapag-lloyd.com/en/online-business/track/track-by-container-solution.html" target="_blank">🚢 Hapag-Lloyd</a>
+      <a class="alt-link" href="https://www.evergreen-line.com/static/jsp/cargo_tracking.jsp" target="_blank">🚢 Evergreen</a>
+      <a class="alt-link" href="https://arkastracking.com" target="_blank">🚢 ARKAS</a>
+    </div>
+  </div>
+  <div id="iframeArea" style="display:none;flex:1;flex-direction:column">
+    <div class="iframe-header">
+      <span id="lineBadge" style="font-size:12px;font-weight:600;color:var(--blue)"></span>
+      <div class="url-bar" id="urlBar"></div>
+      <button class="iframe-ctrl" onclick="yeniSekme()">↗ Yeni sekmede aç</button>
+      <button class="iframe-ctrl" onclick="temizle()">✕ Kapat</button>
+    </div>
+    <iframe id="trackFrame" src="about:blank" allowfullscreen
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox">
+    </iframe>
+    <div id="iframeBlocked" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;background:#fff">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#F0A500" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <h3 style="font-size:15px;color:#1B2A3B" id="blockedTitle">Bu site iframe içinde açılamıyor</h3>
+      <p style="font-size:13px;color:#888;max-width:420px;line-height:1.6" id="blockedDesc">
+        Shipping line'ın güvenlik politikası bu sayfanın embed edilmesini engelliyor. Aşağıdaki butona tıklayarak yeni sekmede açabilirsiniz.
+      </p>
+      <a id="blockedLink" href="#" target="_blank" style="padding:10px 24px;background:var(--blue);color:#fff;border-radius:10px;text-decoration:none;font-size:14px;font-weight:500">
+        Yeni Sekmede Aç →
+      </a>
+      <p style="font-size:11px;color:#aaa">Çoğu shipping line güvenlik nedeniyle embed'e izin vermez.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Shipping Line Tanımları ──────────────────────────────────────────────────
+const LINES = {
+  maersk:   { ad:'Maersk',        renk:'#42B0D5', url: no => `https://www.maersk.com/tracking/${no}` },
+  msc:      { ad:'MSC',           renk:'#8B0000', url: no => `https://www.msc.com/track-a-shipment?agencyPath=tur&searchInfo=${no}` },
+  cmacgm:   { ad:'CMA CGM',       renk:'#E31E26', url: no => `https://www.cma-cgm.com/ebusiness/tracking/search?SearchBy=ContainerNo&Reference=${no}` },
+  evergreen:{ ad:'Evergreen',     renk:'#00A651', url: no => `https://www.evergreen-line.com/static/jsp/cargo_tracking.jsp?fname=cargo_tracking&cname=${no}` },
+  hapag:    { ad:'Hapag-Lloyd',   renk:'#F07D00', url: no => `https://www.hapag-lloyd.com/en/online-business/track/track-by-container-solution.html?container=${no}` },
+  cosco:    { ad:'COSCO',         renk:'#003087', url: no => `https://elines.coscoshipping.com/ebusiness/cargoTracking?trackingType=CONTAINER&number=${no}` },
+  one:      { ad:'ONE',           renk:'#E4117A', url: no => `https://ecomm.one-line.com/ecom/CUP_HOM_3301.do?f_cmd=INIT&cntr_no=${no}` },
+  yangming: { ad:'Yang Ming',     renk:'#009B3A', url: no => `https://www.yangming.com/e-service/Track_Trace/track_trace_cargo_tracking.aspx?type=1&number=${no}` },
+  zim:      { ad:'ZIM',           renk:'#004B8D', url: no => `https://www.zim.com/tools/track-a-shipment?contNums=${no}` },
+  hmm:      { ad:'HMM',           renk:'#003087', url: no => `https://www.hmm21.com/cms/business/ebiz/trackTrace/trackTrace/index.jsp?cntrNo=${no}` },
+  arkas:    { ad:'ARKAS',         renk:'#E31E26', url: no => `https://arkastracking.com/tr/konteyner-sorgulama?no=${no}` },
+  turkon:   { ad:'TURKON LINE',   renk:'#E31E26', url: no => `https://www.turkon.com/TR/kargo-takip/?id=${no}` },
+  unifeeder:{ ad:'Unifeeder',     renk:'#0066CC', url: no => `https://www.unifeeder.com/tracking?containerNumber=${no}` },
+}
+
+// Hat prefix → otomatik hat tespiti
+const PREFIXES = {
+  'MSKU':'maersk','MAEU':'maersk','MRKU':'maersk','MCPU':'maersk',
+  'MSCU':'msc','MEDU':'msc','MSMU':'msc',
+  'CMAU':'cmacgm','CGMU':'cmacgm','APHU':'cmacgm','ANNU':'cmacgm',
+  'EISU':'evergreen','EMCU':'evergreen','EGHU':'evergreen',
+  'HLXU':'hapag','HLCU':'hapag','HAMU':'hapag',
+  'COSU':'cosco','CBHU':'cosco','CCLU':'cosco',
+  'KKFU':'one','ONEU':'one','NYKU':'one',
+  'YMLU':'yangming','YMMU':'yangming',
+  'ZIMU':'zim',
+  'HMMU':'hmm','HDMU':'hmm',
+  'ARKU':'arkas','AXIU':'arkas',
+  'TRKU':'turkon',
+}
+
+let selectedLine = ''
+let currentUrl = ''
+let recentSearches = JSON.parse(localStorage.getItem('recentContainers') || '[]')
+
+// ── Hızlı Hat Pilleri ────────────────────────────────────────────────────────
+function buildLinePills() {
+  const grid = document.getElementById('linesGrid')
+  const mainLines = ['maersk','msc','cmacgm','evergreen','hapag','cosco','arkas']
+  mainLines.forEach(k => {
+    const l = LINES[k]
+    const pill = document.createElement('div')
+    pill.className = 'line-pill'
+    pill.id = `pill_${k}`
+    pill.innerHTML = `<span class="line-dot" style="background:${l.renk}"></span>${l.ad}`
+    pill.onclick = () => {
+      selectedLine = k
+      document.getElementById('lineSelect').value = k
+      document.querySelectorAll('.line-pill').forEach(p => p.classList.remove('active'))
+      pill.classList.add('active')
+    }
+    grid.appendChild(pill)
+  })
+}
+
+function lineSecildi() {
+  selectedLine = document.getElementById('lineSelect').value
+  document.querySelectorAll('.line-pill').forEach(p => p.classList.remove('active'))
+  if (selectedLine) {
+    const pill = document.getElementById(`pill_${selectedLine}`)
+    if (pill) pill.classList.add('active')
+  }
+}
+
+// ── Otomatik Hat Tespiti ─────────────────────────────────────────────────────
+function autoDetectLine(no) {
+  if (!no || no.length < 4) return null
+  const prefix = no.substring(0, 4).toUpperCase()
+  return PREFIXES[prefix] || null
+}
+
+document.getElementById('contNo').addEventListener('input', function() {
+  const no = this.value.toUpperCase()
+  const detected = autoDetectLine(no)
+  if (detected && !selectedLine) {
+    selectedLine = detected
+    document.getElementById('lineSelect').value = detected
+    document.querySelectorAll('.line-pill').forEach(p => p.classList.remove('active'))
+    const pill = document.getElementById(`pill_${detected}`)
+    if (pill) pill.classList.add('active')
+    showStatus('info', `${LINES[detected].ad} otomatik tespit edildi.`)
+  }
+})
+
+// ── Takip Et ────────────────────────────────────────────────────────────────
+function takipEt() {
+  const no = document.getElementById('contNo').value.trim().toUpperCase()
+
+  if (!no) { showStatus('err', 'Konteyner numarası girin.'); return }
+  if (no.length < 9) { showStatus('err', 'Konteyner numarası en az 9 karakter olmalı (örn: MSCU1234567).'); return }
+
+  // Hat yoksa otomatik dene
+  if (!selectedLine) {
+    const detected = autoDetectLine(no)
+    if (detected) {
+      selectedLine = detected
+      document.getElementById('lineSelect').value = detected
+    } else {
+      showStatus('warn', 'Lütfen bir shipping line seçin veya doğru konteyner numarası girin (ilk 4 harf hat kodudur).')
+      return
+    }
+  }
+
+  const line = LINES[selectedLine]
+  if (!line) { showStatus('err', 'Geçersiz hat seçimi.'); return }
+
+  const url = line.url(no)
+  currentUrl = url
+
+  // Son aramalara ekle
+  addRecent(no, selectedLine)
+
+  // UI güncelle
+  document.getElementById('placeholder').style.display = 'none'
+  document.getElementById('iframeArea').style.display = 'flex'
+  document.getElementById('iframeBlocked').style.display = 'none'
+  document.getElementById('trackFrame').style.display = 'block'
+
+  document.getElementById('lineBadge').innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${line.renk};margin-right:5px"></span>${line.ad} — ${no}`
+  document.getElementById('urlBar').textContent = url
+  document.getElementById('blockedLink').href = url
+
+  document.getElementById('statusBar').style.display = 'none'
+
+  // İframe yükle
+  const frame = document.getElementById('trackFrame')
+  frame.src = url
+
+  // İframe yüklenemezse blocked mesajı göster
+  frame.onerror = () => showBlocked(line.ad, url)
+
+  // Timeout: 8 saniyede yüklenmezse blocked göster
+  clearTimeout(window._iframeTimeout)
+  window._iframeTimeout = setTimeout(() => {
+    try {
+      const loaded = frame.contentDocument || frame.contentWindow?.document
+      if (!loaded || loaded.location.href === 'about:blank') {
+        showBlocked(line.ad, url)
+      }
+    } catch(e) {
+      // cross-origin = site yüklendi ama erişilemiyor = aslında yüklendi
+      // Bu iyi bir işaret — blocked gösterme
+    }
+  }, 8000)
+
+  frame.onload = () => {
+    clearTimeout(window._iframeTimeout)
+    try {
+      // cross-origin erişim hatası → site yüklendi
+      frame.contentWindow.document.title
+    } catch(e) {
+      // Normal — cross-origin yüklendi demek
+      clearTimeout(window._iframeTimeout)
+    }
+  }
+}
+
+function showBlocked(lineAd, url) {
+  document.getElementById('trackFrame').style.display = 'none'
+  document.getElementById('iframeBlocked').style.display = 'flex'
+  document.getElementById('blockedTitle').textContent = `${lineAd} embed'e izin vermiyor`
+  document.getElementById('blockedLink').href = url
+}
+
+function yeniSekme() {
+  if (currentUrl) window.open(currentUrl, '_blank')
+}
+
+function temizle() {
+  document.getElementById('placeholder').style.display = 'flex'
+  document.getElementById('iframeArea').style.display = 'none'
+  document.getElementById('trackFrame').src = 'about:blank'
+  currentUrl = ''
+}
+
+// ── Durum Mesajı ────────────────────────────────────────────────────────────
+function showStatus(type, msg) {
+  const bar = document.getElementById('statusBar')
+  bar.style.display = 'flex'
+  bar.className = `status-bar ${type}`
+  const icons = { info:'ℹ️', warn:'⚠️', err:'❌' }
+  bar.innerHTML = `${icons[type]||''} ${msg}`
+  if (type === 'info') setTimeout(() => bar.style.display='none', 3000)
+}
+
+// ── Son Aramalar ─────────────────────────────────────────────────────────────
+function addRecent(no, lineKey) {
+  recentSearches = recentSearches.filter(r => r.no !== no)
+  recentSearches.unshift({ no, lineKey, time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) })
+  recentSearches = recentSearches.slice(0, 8)
+  localStorage.setItem('recentContainers', JSON.stringify(recentSearches))
+  renderRecent()
+}
+
+function renderRecent() {
+  if (!recentSearches.length) return
+  const box = document.getElementById('recentBox')
+  const list = document.getElementById('recentList')
+  box.style.display = 'flex'
+  list.innerHTML = recentSearches.map(r => {
+    const l = LINES[r.lineKey]
+    return `<span class="recent-tag" onclick="loadRecent('${r.no}','${r.lineKey}')" title="${l?.ad||r.lineKey}">
+      ${l ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${l.renk};margin-right:3px;vertical-align:middle"></span>` : ''}
+      ${r.no} <span style="color:#aaa;font-size:10px">${r.time}</span>
+    </span>`
+  }).join('')
+}
+
+function loadRecent(no, lineKey) {
+  document.getElementById('contNo').value = no
+  selectedLine = lineKey
+  document.getElementById('lineSelect').value = lineKey
+  document.querySelectorAll('.line-pill').forEach(p => p.classList.remove('active'))
+  const pill = document.getElementById(`pill_${lineKey}`)
+  if (pill) pill.classList.add('active')
+  takipEt()
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+buildLinePills()
+renderRecent()
+</script>
+</body>
+</html>
